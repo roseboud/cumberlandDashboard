@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "name": "Cumberland_Evacuation_Routes",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Trans-Canada Highway (TCH-104)",
+        "type": "Primary Evacuation Route",
+        "direction": "E-W",
+        "capacity": "High",
+        "flood_vulnerable": true
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-64.50, 45.82],
+          [-64.45, 45.83],
+          [-64.40, 45.835],
+          [-64.35, 45.835],
+          [-64.30, 45.83],
+          [-64.25, 45.83],
+          [-64.20, 45.835],
+          [-64.15, 45.84],
+          [-64.10, 45.84],
+          [-64.05, 45.835]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Highway 2 (Amherst to Joggins)",
+        "type": "Secondary Evacuation Route",
+        "direction": "N-S",
+        "capacity": "Medium",
+        "flood_vulnerable": false
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-64.22, 45.84],
+          [-64.24, 45.82],
+          [-64.27, 45.80],
+          [-64.30, 45.78],
+          [-64.33, 45.76],
+          [-64.36, 45.74],
+          [-64.39, 45.72],
+          [-64.42, 45.70]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Highway 2 (South to Parrsboro)",
+        "type": "Secondary Evacuation Route",
+        "direction": "N-S",
+        "capacity": "Medium",
+        "flood_vulnerable": false
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-64.22, 45.84],
+          [-64.20, 45.80],
+          [-64.18, 45.76],
+          [-64.17, 45.72],
+          [-64.18, 45.68],
+          [-64.20, 45.64],
+          [-64.22, 45.60],
+          [-64.25, 45.56],
+          [-64.27, 45.52],
+          [-64.28, 45.48],
+          [-64.29, 45.44],
+          [-64.30, 45.41]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Route 302 (Nappan Road)",
+        "type": "Local Evacuation Route",
+        "direction": "N-S",
+        "capacity": "Low",
+        "flood_vulnerable": true
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-64.24, 45.83],
+          [-64.24, 45.81],
+          [-64.24, 45.79],
+          [-64.24, 45.77],
+          [-64.25, 45.75]
+        ]
+      }
+    }
+  ]
+}

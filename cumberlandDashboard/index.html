@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumberland County Flood Dashboard</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="styles/map.css" />
+</head>
+<body>
+
+<div class="dashboard-container">
+    <!-- ======== SIDEBAR ======== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>🌊 Cumberland Flood Dashboard</h1>
+            <div class="subtitle">Chignecto Isthmus &mdash; Real-Time Monitoring Prototype</div>
+        </div>
+
+        <!-- Tide Stations Section -->
+        <div class="sidebar-section">
+            <h2><span class="icon">📡</span> Live Tide Stations</h2>
+
+            <!-- Saint John Station -->
+            <div class="tide-widget" id="tide-saintjohn" style="margin-bottom:10px;">
+                <div class="tide-station-name">📍 Saint John, NB (Station 00065 — Bay of Fundy Reference)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-sj"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-sj">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-sj">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+
+            <!-- Charlottetown Station -->
+            <div class="tide-widget" id="tide-charlottetown" style="margin-bottom:10px;">
+                <div class="tide-station-name">📍 Charlottetown, PE (Station 00612)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-ch"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-ch">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-ch">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+
+            <!-- Caribou Station -->
+            <div class="tide-widget" id="tide-caribou">
+                <div class="tide-station-name">📍 Caribou, NS (Station 00490 — Northumberland Strait)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-cb"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-cb">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-cb">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+        </div>
+
+        <!-- KPI Section -->
+        <div class="sidebar-section">
+            <h2><span class="icon">📊</span> Dashboard KPIs</h2>
+            <div class="kpi-cards">
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-stations">3</div>
+                    <div class="kpi-label">Tide Stations</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-flood-zones">5</div>
+                    <div class="kpi-label">Flood Zones</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-infra">6</div>
+                    <div class="kpi-label">Infra. Markers</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-latency">—</div>
+                    <div class="kpi-label">Data Latency</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layer Controls -->
+        <div class="sidebar-section">
+            <h2><span class="icon">🗺️</span> Map Layers</h2>
+            <div class="layer-toggle">
+                <input type="checkbox" id="layer-flood" checked>
+                <span class="layer-color-swatch" style="background: rgba(0, 100, 255, 0.5);"></span>
+                <label for="layer-flood">100-Year Flood Zones</label>
+            </div>
+            <div class="layer-toggle">
+                <input type="checkbox" id="layer-roads" checked>
+                <span class="layer-color-swatch" style="background: #ff6b35;"></span>
+                <label for="layer-roads">Evacuation Routes</label>
+            </div>
+            <div class="layer-toggle">
+                <input type="checkbox" id="layer-infra" checked>
+                <span class="layer-color-swatch" style="background: #e94560;"></span>
+                <label for="layer-infra">Critical Infrastructure</label>
+            </div>
+            <div class="layer-toggle">
+                <input type="checkbox" id="layer-tides" checked>
+                <span class="layer-color-swatch" style="background: #00d4ff;"></span>
+                <label for="layer-tides">Tide Station Markers</label>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="sidebar-section">
+            <h2><span class="icon">🏷️</span> Legend</h2>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-area" style="background: rgba(0, 100, 255, 0.4);"></div>
+                    <span>High Risk Flood Zone (1-in-100 yr)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-area" style="background: rgba(0, 180, 255, 0.3);"></div>
+                    <span>Medium Risk Flood Zone</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ff6b35;"></div>
+                    <span>Primary Evacuation Route</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ffaa00;"></div>
+                    <span>Secondary Evacuation Route</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #e94560;"></div>
+                    <span>Emergency Services</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00c853;"></div>
+                    <span>Healthcare Facility</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00d4ff;"></div>
+                    <span>Tide Monitoring Station</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #aa66ff;"></div>
+                    <span>User-Uploaded Layer</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload -->
+        <div class="sidebar-section">
+            <h2><span class="icon">📂</span> Add Layer</h2>
+            <div class="upload-zone" id="upload-zone">
+                <div class="upload-icon">📤</div>
+                <p>Drop file here or click to browse</p>
+                <div class="upload-formats">Supported: .geojson, .json, .csv</div>
+                <input type="file" id="file-input" accept=".json,.geojson,.csv" />
+            </div>
+            <div class="user-layers-list" id="user-layers-list"></div>
+        </div>
+
+        <!-- Attribution -->
+        <div class="sidebar-section" style="font-size:0.65rem; color:#4a5a78; line-height:1.6;">
+            <strong>Data Sources:</strong> CHS/DFO-MPO (Tides), OpenStreetMap (Base Map).<br>
+            <strong>Project:</strong> INFT3000 Capstone — Cumberland County Floodmap.<br>
+            <strong>Note:</strong> Flood zones are illustrative prototypes pending LiDAR vectorization.
+        </div>
+    </aside>
+
+    <!-- ======== MAP AREA ======== -->
+    <div class="map-area">
+        <div id="map"></div>
+        <div class="map-info-box" id="map-info-box">
+            <h3>Cursor Position</h3>
+            <div class="info-row">
+                <span class="info-label">Lat:</span>
+                <span class="info-value" id="cursor-lat">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Lng:</span>
+                <span class="info-value" id="cursor-lng">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Zoom:</span>
+                <span class="info-value" id="cursor-zoom">—</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast" id="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+// ============================================
+// CUMBERLAND FLOOD DASHBOARD — MAIN LOGIC
+// ============================================
+
+// ---------- UTILITIES ----------
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    setTimeout(() => { toast.className = 'toast'; }, 3500);
+}
+
+function formatTimestamp(isoStr) {
+    try {
+        const d = new Date(isoStr);
+        return d.toLocaleString('en-CA', {
+            timeZone: 'America/Halifax',
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) + ' AST';
+    } catch (e) { return isoStr; }
+}
+
+// ---------- MAP INITIALIZATION ----------
+const map = L.map('map', {
+    center: [45.83, -64.25],
+    zoom: 10,
+    zoomControl: true,
+    attributionControl: true
+});
+
+// Base tile layers
+const osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: '&copy; OpenTopoMap contributors'
+});
+
+const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+});
+
+// Layer control for base maps
+L.control.layers({
+    'OpenStreetMap': osmBase,
+    'Topographic': topoLayer,
+    'Dark Mode': darkLayer
+}, null, { position: 'topleft' }).addTo(map);
+
+// Scale bar
+L.control.scale({ maxWidth: 200, imperial: false }).addTo(map);
+
+// Cursor position tracking
+document.getElementById('cursor-zoom').textContent = map.getZoom();
+map.on('mousemove', function(e) {
+    document.getElementById('cursor-lat').textContent = e.latlng.lat.toFixed(5);
+    document.getElementById('cursor-lng').textContent = e.latlng.lng.toFixed(5);
+});
+map.on('zoomend', function() {
+    document.getElementById('cursor-zoom').textContent = map.getZoom();
+});
+
+// ---------- LAYER GROUP HOLDERS ----------
+let floodLayer = L.layerGroup().addTo(map);
+let roadsLayer = L.layerGroup().addTo(map);
+let infraLayer = L.layerGroup().addTo(map);
+let tideMarkersLayer = L.layerGroup().addTo(map);
+let userLayers = {};
+let userLayerCounter = 0;
+
+// ---------- TIDE STATION CONFIGURATION ----------
+const TIDE_STATIONS = [
+    {
+        id: '5cebf1df3d0f4a073c4bbc24',
+        name: 'Saint John, NB',
+        lat: 45.2517,
+        lng: -66.0633,
+        valueEl: 'tide-value-sj',
+        timeEl: 'tide-time-sj',
+        statusEl: 'tide-status-sj',
+        thresholdElevated: 7.5,
+        thresholdCritical: 8.5
+    },
+    {
+        id: '5cebf1e33d0f4a073c4bc21f',
+        name: 'Charlottetown, PE',
+        lat: 46.2340,
+        lng: -63.1191,
+        valueEl: 'tide-value-ch',
+        timeEl: 'tide-time-ch',
+        statusEl: 'tide-status-ch',
+        thresholdElevated: 2.2,
+        thresholdCritical: 2.8
+    },
+    {
+        id: '5cebf1e33d0f4a073c4bc20d',
+        name: 'Caribou, NS',
+        lat: 45.7700,
+        lng: -62.6783,
+        valueEl: 'tide-value-cb',
+        timeEl: 'tide-time-cb',
+        statusEl: 'tide-status-cb',
+        thresholdElevated: 2.0,
+        thresholdCritical: 2.6
+    }
+];
+
+// ---------- TIDE API FETCH ----------
+async function fetchTideData(station) {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const from = oneHourAgo.toISOString();
+    const to = now.toISOString();
+
+    const primaryUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlp&from=${from}&to=${to}`;
+    const observedUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlo&from=${from}&to=${to}`;
+
+    const valEl = document.getElementById(station.valueEl);
+    const timeEl = document.getElementById(station.timeEl);
+    const statusEl = document.getElementById(station.statusEl);
+
+    try {
+        // Try observed first, fall back to predicted
+        let response = await fetch(observedUrl);
+        let data = null;
+        let dataType = 'Observed';
+
+        if (response.ok) {
+            data = await response.json();
+        }
+
+        if (!data || data.length === 0) {
+            response = await fetch(primaryUrl);
+            if (response.ok) {
+                data = await response.json();
+                dataType = 'Predicted';
+            }
+        }
+
+        if (data && data.length > 0) {
+            const latest = data[data.length - 1];
+            const waterLevel = parseFloat(latest.value).toFixed(2);
+            const timestamp = latest.eventDate || latest.timeStamp;
+
+            valEl.textContent = waterLevel;
+            timeEl.textContent = dataType + ' — ' + formatTimestamp(timestamp);
+
+            // Calculate data latency
+            const latencyMs = now.getTime() - new Date(timestamp).getTime();
+            const latencyMin = Math.round(latencyMs / 60000);
+            document.getElementById('kpi-latency').textContent = latencyMin + 'm';
+
+            // Status classification
+            const level = parseFloat(waterLevel);
+            if (level >= station.thresholdCritical) {
+                statusEl.textContent = 'CRITICAL';
+                statusEl.className = 'tide-status critical';
+            } else if (level >= station.thresholdElevated) {
+                statusEl.textContent = 'ELEVATED';
+                statusEl.className = 'tide-status elevated';
+            } else {
+                statusEl.textContent = 'NORMAL';
+                statusEl.className = 'tide-status normal';
+            }
+            return { level: waterLevel, dataType, station };
+        } else {
+            valEl.textContent = 'N/A';
+            timeEl.textContent = 'No data in last hour';
+            statusEl.textContent = 'NO DATA';
+            statusEl.className = 'tide-status elevated';
+            return null;
+        }
+    } catch (err) {
+        console.error('Tide fetch error for ' + station.name + ':', err);
+        valEl.textContent = 'ERR';
+        timeEl.textContent = 'API unreachable — check CORS / network';
+        statusEl.textContent = 'OFFLINE';
+        statusEl.className = 'tide-status critical';
+        return null;
+    }
+}
+
+async function refreshAllTides() {
+    for (const station of TIDE_STATIONS) {
+        await fetchTideData(station);
+    }
+    showToast('Tide data refreshed', 'success');
+}
+
+// Initial fetch + 5-minute interval
+refreshAllTides();
+setInterval(refreshAllTides, 300000);
+
+// ---------- TIDE STATION MAP MARKERS ----------
+const tideIcon = L.divIcon({
+    html: '<div style="background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(0,212,255,0.6);"></div>',
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+});
+
+TIDE_STATIONS.forEach(function(station) {
+    const marker = L.marker([station.lat, station.lng], { icon: tideIcon });
+    marker.bindPopup(
+        '<div class="popup-title">📡 ' + station.name + '</div>' +
+        '<div class="popup-row"><span class="popup-label">Station ID:</span><span class="popup-value">' + station.id + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">CHS Tidal Gauge</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Coordinates:</span><span class="popup-value">' + station.lat.toFixed(4) + ', ' + station.lng.toFixed(4) + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Elevated @:</span><span class="popup-value">' + station.thresholdElevated + 'm</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Critical @:</span><span class="popup-value">' + station.thresholdCritical + 'm</span></div>'
+    );
+    marker.addTo(tideMarkersLayer);
+});
+
+// ---------- FLOOD ZONES (GeoJSON) ----------
+fetch('assets/flood_100yr.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        L.geoJSON(data, {
+            style: function(feature) {
+                const risk = feature.properties.risk_level;
+                return {
+                    fillColor: risk === 'High' ? '#0064ff' : '#00b4ff',
+                    fillOpacity: risk === 'High' ? 0.40 : 0.25,
+                    color: risk === 'High' ? '#003caa' : '#0088cc',
+                    weight: 2,
+                    dashArray: risk === 'High' ? '' : '5,5'
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const p = feature.properties;
+                layer.bindPopup(
+                    '<div class="popup-title">🌊 ' + p.zone + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Risk Level:</span><span class="popup-value">' + p.risk_level + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Scenario:</span><span class="popup-value">' + p.scenario + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Max Depth:</span><span class="popup-value">' + p.max_depth_m + ' m</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Area:</span><span class="popup-value">' + p.area_km2 + ' km²</span></div>'
+                );
+            }
+        }).addTo(floodLayer);
+        showToast('Flood zones loaded (' + data.features.length + ' zones)', 'info');
+    })
+    .catch(function(err) {
+        console.error('Flood layer error:', err);
+        showToast('Failed to load flood zones', 'error');
+    });
+
+// ---------- ROAD NETWORK (GeoJSON) ----------
+fetch('assets/road_network.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        L.geoJSON(data, {
+            style: function(feature) {
+                const t = feature.properties.type;
+                const vulnerable = feature.properties.flood_vulnerable;
+                let color = '#ffaa00';
+                let weight = 2;
+                let dashArray = '';
+                if (t.includes('Primary')) { color = '#ff6b35'; weight = 4; }
+                else if (t.includes('Secondary')) { color = '#ffaa00'; weight = 3; }
+                else { color = '#ffd166'; weight = 2; dashArray = '4,4'; }
+                return { color: color, weight: weight, opacity: 0.85, dashArray: dashArray };
+            },
+            onEachFeature: function(feature, layer) {
+                const p = feature.properties;
+                layer.bindPopup(
+                    '<div class="popup-title">🛣️ ' + p.name + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + p.type + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Direction:</span><span class="popup-value">' + p.direction + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Capacity:</span><span class="popup-value">' + p.capacity + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Flood Risk:</span><span class="popup-value">' + (p.flood_vulnerable ? '⚠️ Yes' : '✅ No') + '</span></div>'
+                );
+            }
+        }).addTo(roadsLayer);
+    })
+    .catch(function(err) { console.error('Road network error:', err); });
+
+// ---------- CRITICAL INFRASTRUCTURE ----------
+const infrastructureData = [
+    {
+        name: 'Amherst Fire Department',
+        type: 'Fire Station',
+        icon: '🚒',
+        color: '#e94560',
+        lat: 45.8327,
+        lng: -64.2126,
+        elevation: '22m',
+        status: 'Operational',
+        address: '11 Electric St, Amherst, NS'
+    },
+    {
+        name: 'Cumberland Regional Health Care Centre',
+        type: 'Hospital',
+        icon: '🏥',
+        color: '#00c853',
+        lat: 45.8280,
+        lng: -64.2050,
+        elevation: '28m',
+        status: 'Operational',
+        address: '19 & 21 Hospital St, Upper Nappan, NS'
+    },
+    {
+        name: 'Amherst RCMP Detachment',
+        type: 'Police',
+        icon: '🚔',
+        color: '#e94560',
+        lat: 45.8365,
+        lng: -64.2170,
+        elevation: '20m',
+        status: 'Operational',
+        address: '40 Anson St, Amherst, NS'
+    },
+    {
+        name: 'Amherst Emergency Management Office',
+        type: 'EMO',
+        icon: '🏛️',
+        color: '#ff9800',
+        lat: 45.8350,
+        lng: -64.2100,
+        elevation: '24m',
+        status: 'Operational',
+        address: 'Town Hall, 98 Victoria St E, Amherst, NS'
+    },
+    {
+        name: 'Joggins Fossil Centre',
+        type: 'Heritage / Shelter',
+        icon: '🏛️',
+        color: '#ff9800',
+        lat: 45.6917,
+        lng: -64.4319,
+        elevation: '14m',
+        status: 'Operational',
+        address: '100 Main St, Joggins, NS'
+    },
+    {
+        name: 'Parrsboro Fire Department',
+        type: 'Fire Station',
+        icon: '🚒',
+        color: '#e94560',
+        lat: 45.4056,
+        lng: -64.3257,
+        elevation: '10m',
+        status: 'Operational',
+        address: '32 Western Ave, Parrsboro, NS'
+    }
+];
+
+infrastructureData.forEach(function(inf) {
+    const mkIcon = L.divIcon({
+        html: '<div style="background:' + inf.color + ';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:10px;">' + inf.icon.charAt(0) + '</div>',
+        className: '',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+    const marker = L.marker([inf.lat, inf.lng], { icon: mkIcon });
+    marker.bindPopup(
+        '<div class="popup-title">' + inf.icon + ' ' + inf.name + '</div>' +
+        '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + inf.type + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Address:</span><span class="popup-value">' + inf.address + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Elevation:</span><span class="popup-value">' + inf.elevation + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Status:</span><span class="popup-value"><span class="popup-status operational">' + inf.status + '</span></span></div>'
+    );
+    marker.addTo(infraLayer);
+});
+
+// ---------- SIDEBAR LAYER TOGGLES ----------
+document.getElementById('layer-flood').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(floodLayer); }
+    else { map.removeLayer(floodLayer); }
+});
+
+document.getElementById('layer-roads').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(roadsLayer); }
+    else { map.removeLayer(roadsLayer); }
+});
+
+document.getElementById('layer-infra').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(infraLayer); }
+    else { map.removeLayer(infraLayer); }
+});
+
+document.getElementById('layer-tides').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(tideMarkersLayer); }
+    else { map.removeLayer(tideMarkersLayer); }
+});
+
+// ---------- FILE UPLOAD (Drag & Drop + Click) ----------
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+const userLayersList = document.getElementById('user-layers-list');
+
+// Click to open file dialog
+uploadZone.addEventListener('click', function() { fileInput.click(); });
+
+// Drag and drop events
+uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', function() {
+    uploadZone.classList.remove('drag-over');
+});
+uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+        processUploadedFile(e.dataTransfer.files[0]);
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+        processUploadedFile(e.target.files[0]);
+        fileInput.value = '';
+    }
+});
+
+function processUploadedFile(file) {
+    const fileName = file.name.toLowerCase();
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const content = e.target.result;
+
+        try {
+            if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
+                // Parse as GeoJSON
+                const geoData = JSON.parse(content);
+                addUserGeoJSONLayer(file.name, geoData);
+
+            } else if (fileName.endsWith('.csv')) {
+                // Parse CSV — look for Lat/Long columns
+                addUserCSVLayer(file.name, content);
+
+            } else {
+                showToast('Unsupported file format: ' + fileName, 'error');
+            }
+        } catch (err) {
+            console.error('File parse error:', err);
+            showToast('Error parsing file: ' + err.message, 'error');
+        }
+    };
+
+    reader.onerror = function() {
+        showToast('Error reading file', 'error');
+    };
+
+    reader.readAsText(file);
+}
+
+function addUserGeoJSONLayer(name, geoData) {
+    const layerId = 'user-layer-' + (++userLayerCounter);
+    const layer = L.geoJSON(geoData, {
+        style: {
+            fillColor: '#aa66ff',
+            fillOpacity: 0.35,
+            color: '#7733cc',
+            weight: 2
+        },
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 7,
+                fillColor: '#aa66ff',
+                color: '#7733cc',
+                weight: 2,
+                fillOpacity: 0.7
+            });
+        },
+        onEachFeature: function(feature, layer) {
+            if (feature.properties) {
+                let popupHtml = '<div class="popup-title">📎 User Layer Feature</div>';
+                for (const key in feature.properties) {
+                    popupHtml += '<div class="popup-row"><span class="popup-label">' + key + ':</span><span class="popup-value">' + feature.properties[key] + '</span></div>';
+                }
+                layer.bindPopup(popupHtml);
+            }
+        }
+    }).addTo(map);
+
+    userLayers[layerId] = layer;
+    addUserLayerUI(layerId, name);
+    map.fitBounds(layer.getBounds(), { padding: [30, 30] });
+    showToast('Layer loaded: ' + name, 'success');
+}
+
+function addUserCSVLayer(name, csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+        showToast('CSV file appears empty', 'error');
+        return;
+    }
+
+    const headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
+    const latIdx = headers.findIndex(function(h) { return h === 'lat' || h === 'latitude'; });
+    const lngIdx = headers.findIndex(function(h) { return h === 'lng' || h === 'lon' || h === 'long' || h === 'longitude'; });
+
+    if (latIdx === -1 || lngIdx === -1) {
+        showToast('CSV must have Lat/Latitude and Lng/Lon/Long/Longitude columns', 'error');
+        return;
+    }
+
+    const layerId = 'user-layer-' + (++userLayerCounter);
+    const layerGroup = L.layerGroup();
+    let count = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(function(c) { return c.trim(); });
+        const lat = parseFloat(cols[latIdx]);
+        const lng = parseFloat(cols[lngIdx]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: '#aa66ff',
+                color: '#7733cc',
+                weight: 2,
+                fillOpacity: 0.7
+            });
+            // Build popup from all columns
+            let popupHtml = '<div class="popup-title">📎 CSV Row ' + i + '</div>';
+            headers.forEach(function(h, idx) {
+                popupHtml += '<div class="popup-row"><span class="popup-label">' + h + ':</span><span class="popup-value">' + (cols[idx] || '') + '</span></div>';
+            });
+            marker.bindPopup(popupHtml);
+            marker.addTo(layerGroup);
+            count++;
+        }
+    }
+
+    if (count === 0) {
+        showToast('No valid coordinates found in CSV', 'error');
+        return;
+    }
+
+    layerGroup.addTo(map);
+    userLayers[layerId] = layerGroup;
+    addUserLayerUI(layerId, name + ' (' + count + ' pts)');
+    showToast('CSV loaded: ' + count + ' points from ' + name, 'success');
+}
+
+function addUserLayerUI(layerId, name) {
+    const item = document.createElement('div');
+    item.className = 'user-layer-item';
+    item.id = layerId + '-ui';
+    item.innerHTML = '<span class="layer-name" title="' + name + '">📎 ' + name + '</span>' +
+                     '<button class="remove-layer" data-layer-id="' + layerId + '">✕</button>';
+    userLayersList.appendChild(item);
+
+    item.querySelector('.remove-layer').addEventListener('click', function() {
+        const lid = this.getAttribute('data-layer-id');
+        if (userLayers[lid]) {
+            map.removeLayer(userLayers[lid]);
+            delete userLayers[lid];
+        }
+        const uiEl = document.getElementById(lid + '-ui');
+        if (uiEl) uiEl.remove();
+        showToast('Layer removed', 'info');
+    });
+}
+
+// ---------- INITIAL LOG ----------
+console.log('🌊 Cumberland Flood Dashboard initialized');
+console.log('📡 Tide stations: Saint John (00065), Charlottetown (00612), Caribou (00490)');
+console.log('🗺️ Flood zones: 5 | Infrastructure: ' + infrastructureData.length + ' | Routes: 4');
+console.log('📂 File upload: GeoJSON, JSON, CSV supported');
+
+</script>
+</body>
+</html>

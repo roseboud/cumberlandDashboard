@@ -1,0 +1,205 @@
+
+// ---------- SIDEBAR LAYER TOGGLES ----------
+document.getElementById('layer-flood').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(floodLayer); }
+    else { map.removeLayer(floodLayer); }
+});
+
+document.getElementById('layer-roads').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(roadsLayer); }
+    else { map.removeLayer(roadsLayer); }
+});
+
+document.getElementById('layer-infra').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(infraLayer); }
+    else { map.removeLayer(infraLayer); }
+});
+
+document.getElementById('layer-tides').addEventListener('change', function(e) {
+    if (e.target.checked) { map.addLayer(tideMarkersLayer); }
+    else { map.removeLayer(tideMarkersLayer); }
+});
+
+// ---------- FILE UPLOAD (Drag & Drop + Click) ----------
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+const userLayersList = document.getElementById('user-layers-list');
+
+// Click to open file dialog
+uploadZone.addEventListener('click', function() { fileInput.click(); });
+
+// Drag and drop events
+uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', function() {
+    uploadZone.classList.remove('drag-over');
+});
+uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+        processUploadedFile(e.dataTransfer.files[0]);
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+        processUploadedFile(e.target.files[0]);
+        fileInput.value = '';
+    }
+});
+
+function processUploadedFile(file) {
+    const fileName = file.name.toLowerCase();
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const content = e.target.result;
+
+        try {
+            if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
+                // Parse as GeoJSON
+                const geoData = JSON.parse(content);
+                addUserGeoJSONLayer(file.name, geoData);
+
+            } else if (fileName.endsWith('.csv')) {
+                // Parse CSV — look for Lat/Long columns
+                addUserCSVLayer(file.name, content);
+
+            } else {
+                showToast('Unsupported file format: ' + fileName, 'error');
+            }
+        } catch (err) {
+            console.error('File parse error:', err);
+            showToast('Error parsing file: ' + err.message, 'error');
+        }
+    };
+
+    reader.onerror = function() {
+        showToast('Error reading file', 'error');
+    };
+
+    reader.readAsText(file);
+}
+
+function addUserGeoJSONLayer(name, geoData) {
+    const layerId = 'user-layer-' + (++userLayerCounter);
+    const layer = L.geoJSON(geoData, {
+        style: {
+            fillColor: '#aa66ff',
+            fillOpacity: 0.35,
+            color: '#7733cc',
+            weight: 2
+        },
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 7,
+                fillColor: '#aa66ff',
+                color: '#7733cc',
+                weight: 2,
+                fillOpacity: 0.7
+            });
+        },
+        onEachFeature: function(feature, layer) {
+            if (feature.properties) {
+                let popupHtml = '<div class="popup-title">📎 User Layer Feature</div>';
+                for (const key in feature.properties) {
+                    popupHtml += '<div class="popup-row"><span class="popup-label">' + key + ':</span><span class="popup-value">' + feature.properties[key] + '</span></div>';
+                }
+                layer.bindPopup(popupHtml);
+            }
+        }
+    }).addTo(map);
+
+    userLayers[layerId] = layer;
+    addUserLayerUI(layerId, name);
+    map.fitBounds(layer.getBounds(), { padding: [30, 30] });
+    showToast('Layer loaded: ' + name, 'success');
+}
+
+function addUserCSVLayer(name, csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+        showToast('CSV file appears empty', 'error');
+        return;
+    }
+
+    const headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
+    const latIdx = headers.findIndex(function(h) { return h === 'lat' || h === 'latitude'; });
+    const lngIdx = headers.findIndex(function(h) { return h === 'lng' || h === 'lon' || h === 'long' || h === 'longitude'; });
+
+    if (latIdx === -1 || lngIdx === -1) {
+        showToast('CSV must have Lat/Latitude and Lng/Lon/Long/Longitude columns', 'error');
+        return;
+    }
+
+    const layerId = 'user-layer-' + (++userLayerCounter);
+    const layerGroup = L.layerGroup();
+    let count = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(function(c) { return c.trim(); });
+        const lat = parseFloat(cols[latIdx]);
+        const lng = parseFloat(cols[lngIdx]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: '#aa66ff',
+                color: '#7733cc',
+                weight: 2,
+                fillOpacity: 0.7
+            });
+            // Build popup from all columns
+            let popupHtml = '<div class="popup-title">📎 CSV Row ' + i + '</div>';
+            headers.forEach(function(h, idx) {
+                popupHtml += '<div class="popup-row"><span class="popup-label">' + h + ':</span><span class="popup-value">' + (cols[idx] || '') + '</span></div>';
+            });
+            marker.bindPopup(popupHtml);
+            marker.addTo(layerGroup);
+            count++;
+        }
+    }
+
+    if (count === 0) {
+        showToast('No valid coordinates found in CSV', 'error');
+        return;
+    }
+
+    layerGroup.addTo(map);
+    userLayers[layerId] = layerGroup;
+    addUserLayerUI(layerId, name + ' (' + count + ' pts)');
+    showToast('CSV loaded: ' + count + ' points from ' + name, 'success');
+}
+
+function addUserLayerUI(layerId, name) {
+    const item = document.createElement('div');
+    item.className = 'user-layer-item';
+    item.id = layerId + '-ui';
+    item.innerHTML = '<span class="layer-name" title="' + name + '">📎 ' + name + '</span>' +
+                     '<button class="remove-layer" data-layer-id="' + layerId + '">✕</button>';
+    userLayersList.appendChild(item);
+
+    item.querySelector('.remove-layer').addEventListener('click', function() {
+        const lid = this.getAttribute('data-layer-id');
+        if (userLayers[lid]) {
+            map.removeLayer(userLayers[lid]);
+            delete userLayers[lid];
+        }
+        const uiEl = document.getElementById(lid + '-ui');
+        if (uiEl) uiEl.remove();
+        showToast('Layer removed', 'info');
+    });
+}
+
+// ---------- INITIAL LOG ----------
+console.log('🌊 Cumberland Flood Dashboard initialized');
+console.log('📡 Tide stations: Saint John (00065), Charlottetown (00612), Caribou (00490)');
+console.log('🗺️ Flood zones: 5 | Infrastructure: ' + infrastructureData.length + ' | Routes: 4');
+console.log('📂 File upload: GeoJSON, JSON, CSV supported');
+
+</script>
+</body>
+</html>

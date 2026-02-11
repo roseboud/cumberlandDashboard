@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumberland County Flood Dashboard</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="styles/map.css" />
+</head>
+<body>
+
+<div class="dashboard-container">
+    <!-- ======== SIDEBAR ======== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>🌊 Cumberland Flood Dashboard</h1>
+            <div class="subtitle">Chignecto Isthmus &mdash; Real-Time Monitoring Prototype</div>
+        </div>
+
+        <!-- Tide Stations Section -->
+        <div class="sidebar-section">
+            <h2><span class="icon">📡</span> Live Tide Stations</h2>
+
+            <!-- Saint John Station -->
+            <div class="tide-widget" id="tide-saintjohn" style="margin-bottom:10px;">
+                <div class="tide-station-name">📍 Saint John, NB (Station 00065 — Bay of Fundy Reference)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-sj"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-sj">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-sj">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+
+            <!-- Charlottetown Station -->
+            <div class="tide-widget" id="tide-charlottetown" style="margin-bottom:10px;">
+                <div class="tide-station-name">📍 Charlottetown, PE (Station 00612)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-ch"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-ch">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-ch">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+
+            <!-- Caribou Station -->
+            <div class="tide-widget" id="tide-caribou">
+                <div class="tide-station-name">📍 Caribou, NS (Station 00490 — Northumberland Strait)</div>
+                <div class="tide-level-display">
+                    <span class="tide-level-value" id="tide-value-cb"><span class="loading-spinner"></span></span>
+                    <span class="tide-level-unit">metres (CD)</span>
+                </div>
+                <div class="tide-timestamp" id="tide-time-cb">Fetching...</div>
+                <span class="tide-status normal" id="tide-status-cb">LOADING</span>
+                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            </div>
+        </div>
+
+        <!-- KPI Section -->
+        <div class="sidebar-section">
+            <h2><span class="icon">📊</span> Dashboard KPIs</h2>
+            <div class="kpi-cards">
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-stations">3</div>
+                    <div class="kpi-label">Tide Stations</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-flood-zones">5</div>
+                    <div class="kpi-label">Flood Zones</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-infra">6</div>
+                    <div class="kpi-label">Infra. Markers</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpi-latency">—</div>
+                    <div class="kpi-label">Data Latency</div>
+                </div>
+            </div>
+        </div>

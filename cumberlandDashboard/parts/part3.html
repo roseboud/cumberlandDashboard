@@ -1,0 +1,196 @@
+
+// ---------- MAP INITIALIZATION ----------
+const map = L.map('map', {
+    center: [45.83, -64.25],
+    zoom: 10,
+    zoomControl: true,
+    attributionControl: true
+});
+
+// Base tile layers
+const osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: '&copy; OpenTopoMap contributors'
+});
+
+const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+});
+
+// Layer control for base maps
+L.control.layers({
+    'OpenStreetMap': osmBase,
+    'Topographic': topoLayer,
+    'Dark Mode': darkLayer
+}, null, { position: 'topleft' }).addTo(map);
+
+// Scale bar
+L.control.scale({ maxWidth: 200, imperial: false }).addTo(map);
+
+// Cursor position tracking
+document.getElementById('cursor-zoom').textContent = map.getZoom();
+map.on('mousemove', function(e) {
+    document.getElementById('cursor-lat').textContent = e.latlng.lat.toFixed(5);
+    document.getElementById('cursor-lng').textContent = e.latlng.lng.toFixed(5);
+});
+map.on('zoomend', function() {
+    document.getElementById('cursor-zoom').textContent = map.getZoom();
+});
+
+// ---------- LAYER GROUP HOLDERS ----------
+let floodLayer = L.layerGroup().addTo(map);
+let roadsLayer = L.layerGroup().addTo(map);
+let infraLayer = L.layerGroup().addTo(map);
+let tideMarkersLayer = L.layerGroup().addTo(map);
+let userLayers = {};
+let userLayerCounter = 0;
+
+// ---------- TIDE STATION CONFIGURATION ----------
+const TIDE_STATIONS = [
+    {
+        id: '5cebf1df3d0f4a073c4bbc24',
+        name: 'Saint John, NB',
+        lat: 45.2517,
+        lng: -66.0633,
+        valueEl: 'tide-value-sj',
+        timeEl: 'tide-time-sj',
+        statusEl: 'tide-status-sj',
+        thresholdElevated: 7.5,
+        thresholdCritical: 8.5
+    },
+    {
+        id: '5cebf1e33d0f4a073c4bc21f',
+        name: 'Charlottetown, PE',
+        lat: 46.2340,
+        lng: -63.1191,
+        valueEl: 'tide-value-ch',
+        timeEl: 'tide-time-ch',
+        statusEl: 'tide-status-ch',
+        thresholdElevated: 2.2,
+        thresholdCritical: 2.8
+    },
+    {
+        id: '5cebf1e33d0f4a073c4bc20d',
+        name: 'Caribou, NS',
+        lat: 45.7700,
+        lng: -62.6783,
+        valueEl: 'tide-value-cb',
+        timeEl: 'tide-time-cb',
+        statusEl: 'tide-status-cb',
+        thresholdElevated: 2.0,
+        thresholdCritical: 2.6
+    }
+];
+
+// ---------- TIDE API FETCH ----------
+async function fetchTideData(station) {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const from = oneHourAgo.toISOString();
+    const to = now.toISOString();
+
+    const primaryUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlp&from=${from}&to=${to}`;
+    const observedUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlo&from=${from}&to=${to}`;
+
+    const valEl = document.getElementById(station.valueEl);
+    const timeEl = document.getElementById(station.timeEl);
+    const statusEl = document.getElementById(station.statusEl);
+
+    try {
+        // Try observed first, fall back to predicted
+        let response = await fetch(observedUrl);
+        let data = null;
+        let dataType = 'Observed';
+
+        if (response.ok) {
+            data = await response.json();
+        }
+
+        if (!data || data.length === 0) {
+            response = await fetch(primaryUrl);
+            if (response.ok) {
+                data = await response.json();
+                dataType = 'Predicted';
+            }
+        }
+
+        if (data && data.length > 0) {
+            const latest = data[data.length - 1];
+            const waterLevel = parseFloat(latest.value).toFixed(2);
+            const timestamp = latest.eventDate || latest.timeStamp;
+
+            valEl.textContent = waterLevel;
+            timeEl.textContent = dataType + ' — ' + formatTimestamp(timestamp);
+
+            // Calculate data latency
+            const latencyMs = now.getTime() - new Date(timestamp).getTime();
+            const latencyMin = Math.round(latencyMs / 60000);
+            document.getElementById('kpi-latency').textContent = latencyMin + 'm';
+
+            // Status classification
+            const level = parseFloat(waterLevel);
+            if (level >= station.thresholdCritical) {
+                statusEl.textContent = 'CRITICAL';
+                statusEl.className = 'tide-status critical';
+            } else if (level >= station.thresholdElevated) {
+                statusEl.textContent = 'ELEVATED';
+                statusEl.className = 'tide-status elevated';
+            } else {
+                statusEl.textContent = 'NORMAL';
+                statusEl.className = 'tide-status normal';
+            }
+            return { level: waterLevel, dataType, station };
+        } else {
+            valEl.textContent = 'N/A';
+            timeEl.textContent = 'No data in last hour';
+            statusEl.textContent = 'NO DATA';
+            statusEl.className = 'tide-status elevated';
+            return null;
+        }
+    } catch (err) {
+        console.error('Tide fetch error for ' + station.name + ':', err);
+        valEl.textContent = 'ERR';
+        timeEl.textContent = 'API unreachable — check CORS / network';
+        statusEl.textContent = 'OFFLINE';
+        statusEl.className = 'tide-status critical';
+        return null;
+    }
+}
+
+async function refreshAllTides() {
+    for (const station of TIDE_STATIONS) {
+        await fetchTideData(station);
+    }
+    showToast('Tide data refreshed', 'success');
+}
+
+// Initial fetch + 5-minute interval
+refreshAllTides();
+setInterval(refreshAllTides, 300000);
+
+// ---------- TIDE STATION MAP MARKERS ----------
+const tideIcon = L.divIcon({
+    html: '<div style="background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(0,212,255,0.6);"></div>',
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+});
+
+TIDE_STATIONS.forEach(function(station) {
+    const marker = L.marker([station.lat, station.lng], { icon: tideIcon });
+    marker.bindPopup(
+        '<div class="popup-title">📡 ' + station.name + '</div>' +
+        '<div class="popup-row"><span class="popup-label">Station ID:</span><span class="popup-value">' + station.id + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">CHS Tidal Gauge</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Coordinates:</span><span class="popup-value">' + station.lat.toFixed(4) + ', ' + station.lng.toFixed(4) + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Elevated @:</span><span class="popup-value">' + station.thresholdElevated + 'm</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Critical @:</span><span class="popup-value">' + station.thresholdCritical + 'm</span></div>'
+    );
+    marker.addTo(tideMarkersLayer);
+});

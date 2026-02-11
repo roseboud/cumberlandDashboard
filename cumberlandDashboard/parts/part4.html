@@ -1,0 +1,151 @@
+
+// ---------- FLOOD ZONES (GeoJSON) ----------
+fetch('assets/flood_100yr.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        L.geoJSON(data, {
+            style: function(feature) {
+                const risk = feature.properties.risk_level;
+                return {
+                    fillColor: risk === 'High' ? '#0064ff' : '#00b4ff',
+                    fillOpacity: risk === 'High' ? 0.40 : 0.25,
+                    color: risk === 'High' ? '#003caa' : '#0088cc',
+                    weight: 2,
+                    dashArray: risk === 'High' ? '' : '5,5'
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const p = feature.properties;
+                layer.bindPopup(
+                    '<div class="popup-title">🌊 ' + p.zone + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Risk Level:</span><span class="popup-value">' + p.risk_level + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Scenario:</span><span class="popup-value">' + p.scenario + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Max Depth:</span><span class="popup-value">' + p.max_depth_m + ' m</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Area:</span><span class="popup-value">' + p.area_km2 + ' km²</span></div>'
+                );
+            }
+        }).addTo(floodLayer);
+        showToast('Flood zones loaded (' + data.features.length + ' zones)', 'info');
+    })
+    .catch(function(err) {
+        console.error('Flood layer error:', err);
+        showToast('Failed to load flood zones', 'error');
+    });
+
+// ---------- ROAD NETWORK (GeoJSON) ----------
+fetch('assets/road_network.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        L.geoJSON(data, {
+            style: function(feature) {
+                const t = feature.properties.type;
+                const vulnerable = feature.properties.flood_vulnerable;
+                let color = '#ffaa00';
+                let weight = 2;
+                let dashArray = '';
+                if (t.includes('Primary')) { color = '#ff6b35'; weight = 4; }
+                else if (t.includes('Secondary')) { color = '#ffaa00'; weight = 3; }
+                else { color = '#ffd166'; weight = 2; dashArray = '4,4'; }
+                return { color: color, weight: weight, opacity: 0.85, dashArray: dashArray };
+            },
+            onEachFeature: function(feature, layer) {
+                const p = feature.properties;
+                layer.bindPopup(
+                    '<div class="popup-title">🛣️ ' + p.name + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + p.type + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Direction:</span><span class="popup-value">' + p.direction + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Capacity:</span><span class="popup-value">' + p.capacity + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Flood Risk:</span><span class="popup-value">' + (p.flood_vulnerable ? '⚠️ Yes' : '✅ No') + '</span></div>'
+                );
+            }
+        }).addTo(roadsLayer);
+    })
+    .catch(function(err) { console.error('Road network error:', err); });
+
+// ---------- CRITICAL INFRASTRUCTURE ----------
+const infrastructureData = [
+    {
+        name: 'Amherst Fire Department',
+        type: 'Fire Station',
+        icon: '🚒',
+        color: '#e94560',
+        lat: 45.8327,
+        lng: -64.2126,
+        elevation: '22m',
+        status: 'Operational',
+        address: '11 Electric St, Amherst, NS'
+    },
+    {
+        name: 'Cumberland Regional Health Care Centre',
+        type: 'Hospital',
+        icon: '🏥',
+        color: '#00c853',
+        lat: 45.8280,
+        lng: -64.2050,
+        elevation: '28m',
+        status: 'Operational',
+        address: '19 & 21 Hospital St, Upper Nappan, NS'
+    },
+    {
+        name: 'Amherst RCMP Detachment',
+        type: 'Police',
+        icon: '🚔',
+        color: '#e94560',
+        lat: 45.8365,
+        lng: -64.2170,
+        elevation: '20m',
+        status: 'Operational',
+        address: '40 Anson St, Amherst, NS'
+    },
+    {
+        name: 'Amherst Emergency Management Office',
+        type: 'EMO',
+        icon: '🏛️',
+        color: '#ff9800',
+        lat: 45.8350,
+        lng: -64.2100,
+        elevation: '24m',
+        status: 'Operational',
+        address: 'Town Hall, 98 Victoria St E, Amherst, NS'
+    },
+    {
+        name: 'Joggins Fossil Centre',
+        type: 'Heritage / Shelter',
+        icon: '🏛️',
+        color: '#ff9800',
+        lat: 45.6917,
+        lng: -64.4319,
+        elevation: '14m',
+        status: 'Operational',
+        address: '100 Main St, Joggins, NS'
+    },
+    {
+        name: 'Parrsboro Fire Department',
+        type: 'Fire Station',
+        icon: '🚒',
+        color: '#e94560',
+        lat: 45.4056,
+        lng: -64.3257,
+        elevation: '10m',
+        status: 'Operational',
+        address: '32 Western Ave, Parrsboro, NS'
+    }
+];
+
+infrastructureData.forEach(function(inf) {
+    const mkIcon = L.divIcon({
+        html: '<div style="background:' + inf.color + ';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:10px;">' + inf.icon.charAt(0) + '</div>',
+        className: '',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+    const marker = L.marker([inf.lat, inf.lng], { icon: mkIcon });
+    marker.bindPopup(
+        '<div class="popup-title">' + inf.icon + ' ' + inf.name + '</div>' +
+        '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + inf.type + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Address:</span><span class="popup-value">' + inf.address + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Elevation:</span><span class="popup-value">' + inf.elevation + '</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Status:</span><span class="popup-value"><span class="popup-status operational">' + inf.status + '</span></span></div>'
+    );
+    marker.addTo(infraLayer);
+});
