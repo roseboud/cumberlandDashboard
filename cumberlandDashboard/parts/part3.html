@@ -1,39 +1,138 @@
 
+    <!-- MAP AREA -->
+    <div class="map-area">
+        <div id="map"></div>
+        <div class="loading-overlay" id="loading-overlay">
+            <span class="loading-spinner"></span>
+            <span>Loading flood data...</span>
+        </div>
+        <div class="map-info-box" id="map-info-box">
+            <h3>Cursor Position</h3>
+            <div class="info-row">
+                <span class="info-label">Lat:</span>
+                <span class="info-value" id="cursor-lat">&mdash;</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Lng:</span>
+                <span class="info-value" id="cursor-lng">&mdash;</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Zoom:</span>
+                <span class="info-value" id="cursor-zoom">&mdash;</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+// ============================================
+// CUMBERLAND COUNTY FLOOD DASHBOARD
+// ============================================
+
+// ---------- THEME TOGGLE ----------
+(function() {
+    var saved = localStorage.getItem('cumberland-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcons(saved);
+})();
+
+function updateThemeIcons(theme) {
+    var lightIcon = document.getElementById('theme-icon-light');
+    var darkIcon = document.getElementById('theme-icon-dark');
+    if (lightIcon && darkIcon) {
+        lightIcon.style.display = theme === 'light' ? 'block' : 'none';
+        darkIcon.style.display = theme === 'dark' ? 'block' : 'none';
+    }
+}
+
+document.getElementById('theme-toggle').addEventListener('click', function() {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    var next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('cumberland-theme', next);
+    updateThemeIcons(next);
+});
+
+// ---------- SECTION TOGGLES ----------
+function setupToggle(headerId, contentId) {
+    var header = document.getElementById(headerId);
+    var content = document.getElementById(contentId);
+    if (header && content) {
+        header.addEventListener('click', function() {
+            var isHidden = content.style.display === 'none';
+            content.style.display = isHidden ? '' : 'none';
+            header.classList.toggle('collapsed', !isHidden);
+        });
+    }
+}
+setupToggle('toggle-tides', 'tides-content');
+setupToggle('toggle-legend', 'legend-content');
+
+// ---------- UTILITIES ----------
+function showToast(message, type) {
+    type = type || 'info';
+    var toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    setTimeout(function() { toast.className = 'toast'; }, 3500);
+}
+
+function formatTimestamp(isoStr) {
+    try {
+        var d = new Date(isoStr);
+        return d.toLocaleString('en-CA', {
+            timeZone: 'America/Halifax',
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) + ' AST';
+    } catch (e) { return isoStr; }
+}
+
 // ---------- MAP INITIALIZATION ----------
-const map = L.map('map', {
-    center: [45.83, -64.25],
+var map = L.map('map', {
+    center: [45.75, -64.30],
     zoom: 10,
     zoomControl: true,
     attributionControl: true
 });
 
-// Base tile layers
-const osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
 
-const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     maxZoom: 17,
-    attribution: '&copy; OpenTopoMap contributors'
+    attribution: '&copy; OpenTopoMap'
 });
 
-const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+    attribution: '&copy; CARTO'
 });
 
-// Layer control for base maps
+var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 18,
+    attribution: '&copy; Esri'
+});
+
 L.control.layers({
-    'OpenStreetMap': osmBase,
+    'Street Map': osmBase,
     'Topographic': topoLayer,
-    'Dark Mode': darkLayer
+    'Satellite': satelliteLayer,
+    'Dark': darkLayer
 }, null, { position: 'topleft' }).addTo(map);
 
-// Scale bar
 L.control.scale({ maxWidth: 200, imperial: false }).addTo(map);
 
-// Cursor position tracking
+// Cursor position
 document.getElementById('cursor-zoom').textContent = map.getZoom();
 map.on('mousemove', function(e) {
     document.getElementById('cursor-lat').textContent = e.latlng.lat.toFixed(5);
@@ -43,154 +142,119 @@ map.on('zoomend', function() {
     document.getElementById('cursor-zoom').textContent = map.getZoom();
 });
 
-// ---------- LAYER GROUP HOLDERS ----------
-let floodLayer = L.layerGroup().addTo(map);
-let roadsLayer = L.layerGroup().addTo(map);
-let infraLayer = L.layerGroup().addTo(map);
-let tideMarkersLayer = L.layerGroup().addTo(map);
-let userLayers = {};
-let userLayerCounter = 0;
+// ---------- LAYER GROUPS ----------
+var floodLayerFundy = L.layerGroup().addTo(map);
+var floodLayerNorth = L.layerGroup().addTo(map);
+var roadsLayer = L.layerGroup().addTo(map);
+var infraLayer = L.layerGroup().addTo(map);
+var tideMarkersLayer = L.layerGroup().addTo(map);
+var userLayers = {};
+var userLayerCounter = 0;
 
-// ---------- TIDE STATION CONFIGURATION ----------
-const TIDE_STATIONS = [
+// ---------- FLOOD LAYER CACHE ----------
+var floodCache = {};
+var currentFloodLevel = 0;
+var currentSide = 'both';
+
+// ---------- TIDE STATIONS ----------
+var TIDE_STATIONS = [
     {
         id: '5cebf1df3d0f4a073c4bbc24',
         name: 'Saint John, NB',
-        lat: 45.2517,
-        lng: -66.0633,
-        valueEl: 'tide-value-sj',
-        timeEl: 'tide-time-sj',
-        statusEl: 'tide-status-sj',
-        thresholdElevated: 7.5,
-        thresholdCritical: 8.5
+        lat: 45.2517, lng: -66.0633,
+        valueEl: 'tide-value-sj', timeEl: 'tide-time-sj', statusEl: 'tide-status-sj',
+        thresholdElevated: 7.5, thresholdCritical: 8.5
     },
     {
         id: '5cebf1e33d0f4a073c4bc21f',
         name: 'Charlottetown, PE',
-        lat: 46.2340,
-        lng: -63.1191,
-        valueEl: 'tide-value-ch',
-        timeEl: 'tide-time-ch',
-        statusEl: 'tide-status-ch',
-        thresholdElevated: 2.2,
-        thresholdCritical: 2.8
+        lat: 46.2340, lng: -63.1191,
+        valueEl: 'tide-value-ch', timeEl: 'tide-time-ch', statusEl: 'tide-status-ch',
+        thresholdElevated: 2.2, thresholdCritical: 2.8
     },
     {
         id: '5cebf1e33d0f4a073c4bc20d',
         name: 'Caribou, NS',
-        lat: 45.7700,
-        lng: -62.6783,
-        valueEl: 'tide-value-cb',
-        timeEl: 'tide-time-cb',
-        statusEl: 'tide-status-cb',
-        thresholdElevated: 2.0,
-        thresholdCritical: 2.6
+        lat: 45.7700, lng: -62.6783,
+        valueEl: 'tide-value-cb', timeEl: 'tide-time-cb', statusEl: 'tide-status-cb',
+        thresholdElevated: 2.0, thresholdCritical: 2.6
     }
 ];
 
-// ---------- TIDE API FETCH ----------
+// ---------- TIDE API ----------
 async function fetchTideData(station) {
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const from = oneHourAgo.toISOString();
-    const to = now.toISOString();
+    var now = new Date();
+    var oneHourAgo = new Date(now.getTime() - 3600000);
+    var from = oneHourAgo.toISOString();
+    var to = now.toISOString();
+    var observedUrl = 'https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/' + station.id + '/data?time-series-code=wlo&from=' + from + '&to=' + to;
+    var predictedUrl = 'https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/' + station.id + '/data?time-series-code=wlp&from=' + from + '&to=' + to;
 
-    const primaryUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlp&from=${from}&to=${to}`;
-    const observedUrl = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${station.id}/data?time-series-code=wlo&from=${from}&to=${to}`;
-
-    const valEl = document.getElementById(station.valueEl);
-    const timeEl = document.getElementById(station.timeEl);
-    const statusEl = document.getElementById(station.statusEl);
+    var valEl = document.getElementById(station.valueEl);
+    var timeEl = document.getElementById(station.timeEl);
+    var statusEl = document.getElementById(station.statusEl);
 
     try {
-        // Try observed first, fall back to predicted
-        let response = await fetch(observedUrl);
-        let data = null;
-        let dataType = 'Observed';
-
-        if (response.ok) {
-            data = await response.json();
-        }
-
+        var response = await fetch(observedUrl);
+        var data = null;
+        var dataType = 'Observed';
+        if (response.ok) data = await response.json();
         if (!data || data.length === 0) {
-            response = await fetch(primaryUrl);
-            if (response.ok) {
-                data = await response.json();
-                dataType = 'Predicted';
-            }
+            response = await fetch(predictedUrl);
+            if (response.ok) { data = await response.json(); dataType = 'Predicted'; }
         }
-
         if (data && data.length > 0) {
-            const latest = data[data.length - 1];
-            const waterLevel = parseFloat(latest.value).toFixed(2);
-            const timestamp = latest.eventDate || latest.timeStamp;
-
+            var latest = data[data.length - 1];
+            var waterLevel = parseFloat(latest.value).toFixed(2);
+            var timestamp = latest.eventDate || latest.timeStamp;
             valEl.textContent = waterLevel;
-            timeEl.textContent = dataType + ' — ' + formatTimestamp(timestamp);
-
-            // Calculate data latency
-            const latencyMs = now.getTime() - new Date(timestamp).getTime();
-            const latencyMin = Math.round(latencyMs / 60000);
+            timeEl.textContent = dataType + ' \u2014 ' + formatTimestamp(timestamp);
+            var latencyMs = now.getTime() - new Date(timestamp).getTime();
+            var latencyMin = Math.round(latencyMs / 60000);
             document.getElementById('kpi-latency').textContent = latencyMin + 'm';
-
-            // Status classification
-            const level = parseFloat(waterLevel);
+            var level = parseFloat(waterLevel);
             if (level >= station.thresholdCritical) {
-                statusEl.textContent = 'CRITICAL';
-                statusEl.className = 'tide-status critical';
+                statusEl.textContent = 'CRITICAL'; statusEl.className = 'tide-status critical';
             } else if (level >= station.thresholdElevated) {
-                statusEl.textContent = 'ELEVATED';
-                statusEl.className = 'tide-status elevated';
+                statusEl.textContent = 'ELEVATED'; statusEl.className = 'tide-status elevated';
             } else {
-                statusEl.textContent = 'NORMAL';
-                statusEl.className = 'tide-status normal';
+                statusEl.textContent = 'NORMAL'; statusEl.className = 'tide-status normal';
             }
-            return { level: waterLevel, dataType, station };
         } else {
-            valEl.textContent = 'N/A';
-            timeEl.textContent = 'No data in last hour';
-            statusEl.textContent = 'NO DATA';
-            statusEl.className = 'tide-status elevated';
-            return null;
+            valEl.textContent = 'N/A'; timeEl.textContent = 'No data in last hour';
+            statusEl.textContent = 'NO DATA'; statusEl.className = 'tide-status elevated';
         }
     } catch (err) {
         console.error('Tide fetch error for ' + station.name + ':', err);
-        valEl.textContent = 'ERR';
-        timeEl.textContent = 'API unreachable — check CORS / network';
-        statusEl.textContent = 'OFFLINE';
-        statusEl.className = 'tide-status critical';
-        return null;
+        valEl.textContent = 'ERR'; timeEl.textContent = 'API unreachable';
+        statusEl.textContent = 'OFFLINE'; statusEl.className = 'tide-status critical';
     }
 }
 
 async function refreshAllTides() {
-    for (const station of TIDE_STATIONS) {
-        await fetchTideData(station);
+    for (var i = 0; i < TIDE_STATIONS.length; i++) {
+        await fetchTideData(TIDE_STATIONS[i]);
     }
     showToast('Tide data refreshed', 'success');
 }
 
-// Initial fetch + 5-minute interval
 refreshAllTides();
 setInterval(refreshAllTides, 300000);
 
-// ---------- TIDE STATION MAP MARKERS ----------
-const tideIcon = L.divIcon({
-    html: '<div style="background:#00d4ff;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(0,212,255,0.6);"></div>',
-    className: '',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
+// ---------- TIDE MARKERS ----------
+var tideIcon = L.divIcon({
+    html: '<div style="background:#2980b9;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(41,128,185,0.5);"></div>',
+    className: '', iconSize: [12, 12], iconAnchor: [6, 6]
 });
 
 TIDE_STATIONS.forEach(function(station) {
-    const marker = L.marker([station.lat, station.lng], { icon: tideIcon });
+    var marker = L.marker([station.lat, station.lng], { icon: tideIcon });
     marker.bindPopup(
-        '<div class="popup-title">📡 ' + station.name + '</div>' +
-        '<div class="popup-row"><span class="popup-label">Station ID:</span><span class="popup-value">' + station.id + '</span></div>' +
+        '<div class="popup-title">' + station.name + '</div>' +
         '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">CHS Tidal Gauge</span></div>' +
         '<div class="popup-row"><span class="popup-label">Coordinates:</span><span class="popup-value">' + station.lat.toFixed(4) + ', ' + station.lng.toFixed(4) + '</span></div>' +
-        '<div class="popup-row"><span class="popup-label">Elevated @:</span><span class="popup-value">' + station.thresholdElevated + 'm</span></div>' +
-        '<div class="popup-row"><span class="popup-label">Critical @:</span><span class="popup-value">' + station.thresholdCritical + 'm</span></div>'
+        '<div class="popup-row"><span class="popup-label">Elevated:</span><span class="popup-value">' + station.thresholdElevated + 'm</span></div>' +
+        '<div class="popup-row"><span class="popup-label">Critical:</span><span class="popup-value">' + station.thresholdCritical + 'm</span></div>'
     );
     marker.addTo(tideMarkersLayer);
 });

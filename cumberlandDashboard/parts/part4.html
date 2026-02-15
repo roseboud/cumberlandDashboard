@@ -1,151 +1,184 @@
 
-// ---------- FLOOD ZONES (GeoJSON) ----------
-fetch('assets/flood_100yr.json')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        L.geoJSON(data, {
-            style: function(feature) {
-                const risk = feature.properties.risk_level;
-                return {
-                    fillColor: risk === 'High' ? '#0064ff' : '#00b4ff',
-                    fillOpacity: risk === 'High' ? 0.40 : 0.25,
-                    color: risk === 'High' ? '#003caa' : '#0088cc',
-                    weight: 2,
-                    dashArray: risk === 'High' ? '' : '5,5'
-                };
-            },
-            onEachFeature: function(feature, layer) {
-                const p = feature.properties;
-                layer.bindPopup(
-                    '<div class="popup-title">🌊 ' + p.zone + '</div>' +
-                    '<div class="popup-row"><span class="popup-label">Risk Level:</span><span class="popup-value">' + p.risk_level + '</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Scenario:</span><span class="popup-value">' + p.scenario + '</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Max Depth:</span><span class="popup-value">' + p.max_depth_m + ' m</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Area:</span><span class="popup-value">' + p.area_km2 + ' km²</span></div>'
+// ---------- FLOOD SLIDER LOGIC ----------
+function getFloodStyle(level) {
+    var opacity = 0.2 + (level / 11) * 0.35;
+    var r = Math.round(30 + (level / 11) * 20);
+    var g = Math.round(100 - (level / 11) * 60);
+    var b = Math.round(235 - (level / 11) * 50);
+    return {
+        fillColor: 'rgb(' + r + ',' + g + ',' + b + ')',
+        fillOpacity: opacity,
+        color: 'rgb(' + Math.max(r-30,0) + ',' + Math.max(g-30,0) + ',' + Math.max(b-30,0) + ')',
+        weight: 1.5,
+        opacity: 0.7
+    };
+}
+
+async function loadFloodLayer(side, level) {
+    var key = side + '_' + level + '_0m';
+    if (floodCache[key]) return floodCache[key];
+
+    var url = 'assets/geojson/flood_' + side + '_' + level + '_0m.geojson';
+    try {
+        var response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        var data = await response.json();
+        var layer = L.geoJSON(data, {
+            style: getFloodStyle(level),
+            onEachFeature: function(feature, lyr) {
+                lyr.bindPopup(
+                    '<div class="popup-title">Flood Inundation Zone</div>' +
+                    '<div class="popup-row"><span class="popup-label">Water Level:</span><span class="popup-value">' + level + '.0 m</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Source:</span><span class="popup-value">' + (side === 'fundy' ? 'Bay of Fundy' : 'Northumberland Strait') + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Data:</span><span class="popup-value">LiDAR DEM derived</span></div>'
                 );
             }
-        }).addTo(floodLayer);
-        showToast('Flood zones loaded (' + data.features.length + ' zones)', 'info');
-    })
-    .catch(function(err) {
-        console.error('Flood layer error:', err);
-        showToast('Failed to load flood zones', 'error');
-    });
+        });
+        floodCache[key] = layer;
+        return layer;
+    } catch (err) {
+        console.error('Failed to load flood layer:', url, err);
+        return null;
+    }
+}
 
-// ---------- ROAD NETWORK (GeoJSON) ----------
-fetch('assets/road_network.json')
+async function updateFloodDisplay(level) {
+    var overlay = document.getElementById('loading-overlay');
+    overlay.classList.add('visible');
+
+    floodLayerFundy.clearLayers();
+    floodLayerNorth.clearLayers();
+
+    document.getElementById('flood-level-display').textContent = level + '.0';
+    document.getElementById('kpi-flood-level').textContent = level + 'm';
+
+    var loadPromises = [];
+
+    if (currentSide === 'both' || currentSide === 'fundy') {
+        loadPromises.push(
+            loadFloodLayer('fundy', level).then(function(layer) {
+                if (layer) floodLayerFundy.addLayer(layer);
+            })
+        );
+    }
+
+    if (currentSide === 'both' || currentSide === 'north') {
+        loadPromises.push(
+            loadFloodLayer('north', level).then(function(layer) {
+                if (layer) floodLayerNorth.addLayer(layer);
+            })
+        );
+    }
+
+    await Promise.all(loadPromises);
+    overlay.classList.remove('visible');
+}
+
+// Slider event
+var sliderTimeout = null;
+document.getElementById('flood-slider').addEventListener('input', function(e) {
+    var level = parseInt(e.target.value);
+    currentFloodLevel = level;
+    document.getElementById('flood-level-display').textContent = level + '.0';
+    document.getElementById('kpi-flood-level').textContent = level + 'm';
+
+    if (sliderTimeout) clearTimeout(sliderTimeout);
+    sliderTimeout = setTimeout(function() {
+        updateFloodDisplay(level);
+    }, 200);
+});
+
+// Side toggle buttons
+document.querySelectorAll('.side-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.side-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        currentSide = this.getAttribute('data-side');
+        updateFloodDisplay(currentFloodLevel);
+    });
+});
+
+// ---------- ROAD NETWORK (Real OSM Data) ----------
+fetch('assets/geojson/roads_cumberland.geojson')
     .then(function(r) { return r.json(); })
     .then(function(data) {
         L.geoJSON(data, {
             style: function(feature) {
-                const t = feature.properties.type;
-                const vulnerable = feature.properties.flood_vulnerable;
-                let color = '#ffaa00';
-                let weight = 2;
-                let dashArray = '';
-                if (t.includes('Primary')) { color = '#ff6b35'; weight = 4; }
-                else if (t.includes('Secondary')) { color = '#ffaa00'; weight = 3; }
-                else { color = '#ffd166'; weight = 2; dashArray = '4,4'; }
-                return { color: color, weight: weight, opacity: 0.85, dashArray: dashArray };
+                var hw = feature.properties.highway;
+                var color = '#f39c12';
+                var weight = 2;
+                var opacity = 0.7;
+                if (hw === 'motorway' || hw === 'motorway_link') {
+                    color = '#8e44ad'; weight = 4; opacity = 0.85;
+                } else if (hw === 'trunk' || hw === 'trunk_link') {
+                    color = '#c0392b'; weight = 3.5; opacity = 0.85;
+                } else if (hw === 'primary') {
+                    color = '#e67e22'; weight = 3; opacity = 0.8;
+                } else if (hw === 'secondary') {
+                    color = '#f39c12'; weight = 2.5; opacity = 0.75;
+                }
+                return { color: color, weight: weight, opacity: opacity };
             },
             onEachFeature: function(feature, layer) {
-                const p = feature.properties;
+                var p = feature.properties;
+                var name = p.name || 'Unnamed';
+                var ref = p.ref ? ' (' + p.ref + ')' : '';
                 layer.bindPopup(
-                    '<div class="popup-title">🛣️ ' + p.name + '</div>' +
-                    '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + p.type + '</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Direction:</span><span class="popup-value">' + p.direction + '</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Capacity:</span><span class="popup-value">' + p.capacity + '</span></div>' +
-                    '<div class="popup-row"><span class="popup-label">Flood Risk:</span><span class="popup-value">' + (p.flood_vulnerable ? '⚠️ Yes' : '✅ No') + '</span></div>'
+                    '<div class="popup-title">' + name + ref + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Classification:</span><span class="popup-value">' + (p.highway || 'N/A') + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Surface:</span><span class="popup-value">' + (p.surface || 'paved') + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Lanes:</span><span class="popup-value">' + (p.lanes || 'N/A') + '</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Source:</span><span class="popup-value">OpenStreetMap</span></div>'
                 );
             }
         }).addTo(roadsLayer);
+        showToast('Road network loaded (' + data.features.length + ' segments)', 'info');
     })
     .catch(function(err) { console.error('Road network error:', err); });
 
-// ---------- CRITICAL INFRASTRUCTURE ----------
-const infrastructureData = [
-    {
-        name: 'Amherst Fire Department',
-        type: 'Fire Station',
-        icon: '🚒',
-        color: '#e94560',
-        lat: 45.8327,
-        lng: -64.2126,
-        elevation: '22m',
-        status: 'Operational',
-        address: '11 Electric St, Amherst, NS'
-    },
-    {
-        name: 'Cumberland Regional Health Care Centre',
-        type: 'Hospital',
-        icon: '🏥',
-        color: '#00c853',
-        lat: 45.8280,
-        lng: -64.2050,
-        elevation: '28m',
-        status: 'Operational',
-        address: '19 & 21 Hospital St, Upper Nappan, NS'
-    },
-    {
-        name: 'Amherst RCMP Detachment',
-        type: 'Police',
-        icon: '🚔',
-        color: '#e94560',
-        lat: 45.8365,
-        lng: -64.2170,
-        elevation: '20m',
-        status: 'Operational',
-        address: '40 Anson St, Amherst, NS'
-    },
-    {
-        name: 'Amherst Emergency Management Office',
-        type: 'EMO',
-        icon: '🏛️',
-        color: '#ff9800',
-        lat: 45.8350,
-        lng: -64.2100,
-        elevation: '24m',
-        status: 'Operational',
-        address: 'Town Hall, 98 Victoria St E, Amherst, NS'
-    },
-    {
-        name: 'Joggins Fossil Centre',
-        type: 'Heritage / Shelter',
-        icon: '🏛️',
-        color: '#ff9800',
-        lat: 45.6917,
-        lng: -64.4319,
-        elevation: '14m',
-        status: 'Operational',
-        address: '100 Main St, Joggins, NS'
-    },
-    {
-        name: 'Parrsboro Fire Department',
-        type: 'Fire Station',
-        icon: '🚒',
-        color: '#e94560',
-        lat: 45.4056,
-        lng: -64.3257,
-        elevation: '10m',
-        status: 'Operational',
-        address: '32 Western Ave, Parrsboro, NS'
-    }
-];
+// ---------- CRITICAL INFRASTRUCTURE (Real OSM Data) ----------
+function getInfraStyle(amenity) {
+    if (amenity === 'fire_station') return { color: '#c0392b', label: 'Fire Station' };
+    if (amenity === 'hospital' || amenity === 'clinic') return { color: '#27ae60', label: 'Healthcare' };
+    if (amenity === 'police') return { color: '#2980b9', label: 'Police' };
+    if (amenity === 'townhall') return { color: '#8e44ad', label: 'Town Hall' };
+    if (amenity === 'community_centre') return { color: '#e67e22', label: 'Community Centre' };
+    return { color: '#7f8c8d', label: amenity || 'Facility' };
+}
 
-infrastructureData.forEach(function(inf) {
-    const mkIcon = L.divIcon({
-        html: '<div style="background:' + inf.color + ';width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:10px;">' + inf.icon.charAt(0) + '</div>',
-        className: '',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
-    });
-    const marker = L.marker([inf.lat, inf.lng], { icon: mkIcon });
-    marker.bindPopup(
-        '<div class="popup-title">' + inf.icon + ' ' + inf.name + '</div>' +
-        '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + inf.type + '</span></div>' +
-        '<div class="popup-row"><span class="popup-label">Address:</span><span class="popup-value">' + inf.address + '</span></div>' +
-        '<div class="popup-row"><span class="popup-label">Elevation:</span><span class="popup-value">' + inf.elevation + '</span></div>' +
-        '<div class="popup-row"><span class="popup-label">Status:</span><span class="popup-value"><span class="popup-status operational">' + inf.status + '</span></span></div>'
-    );
-    marker.addTo(infraLayer);
-});
+fetch('assets/geojson/infrastructure_cumberland.geojson')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var count = 0;
+        L.geoJSON(data, {
+            pointToLayer: function(feature, latlng) {
+                var amenity = feature.properties.amenity || feature.properties.healthcare || feature.properties.emergency || '';
+                var style = getInfraStyle(amenity);
+                count++;
+                return L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: style.color,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 0.9
+                });
+            },
+            onEachFeature: function(feature, layer) {
+                var p = feature.properties;
+                var amenity = p.amenity || p.healthcare || p.emergency || '';
+                var style = getInfraStyle(amenity);
+                var name = p.name || style.label;
+                var addr = '';
+                if (p['addr:street']) addr = (p['addr:housenumber'] || '') + ' ' + p['addr:street'];
+                layer.bindPopup(
+                    '<div class="popup-title">' + name + '</div>' +
+                    '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">' + style.label + '</span></div>' +
+                    (addr ? '<div class="popup-row"><span class="popup-label">Address:</span><span class="popup-value">' + addr.trim() + '</span></div>' : '') +
+                    '<div class="popup-row"><span class="popup-label">Source:</span><span class="popup-value">OpenStreetMap</span></div>'
+                );
+            }
+        }).addTo(infraLayer);
+        document.getElementById('kpi-infra').textContent = count;
+        showToast('Infrastructure loaded (' + count + ' facilities)', 'info');
+    })
+    .catch(function(err) { console.error('Infrastructure error:', err); });

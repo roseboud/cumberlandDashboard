@@ -4,83 +4,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cumberland County Flood Dashboard</title>
-    <!-- Leaflet CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin="" />
-    <!-- Dashboard CSS -->
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="styles/map.css" />
 </head>
 <body>
-
 <div class="dashboard-container">
-    <!-- ======== SIDEBAR ======== -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h1>🌊 Cumberland Flood Dashboard</h1>
-            <div class="subtitle">Chignecto Isthmus &mdash; Real-Time Monitoring Prototype</div>
+            <div class="header-brand">
+                <div class="header-logo">
+                    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="rgba(255,255,255,0.15)"/>
+                        <path d="M8 22c2-3 4-5 7-5s5 4 7 4 4-3 6-5" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                        <path d="M8 26c2-3 4-5 7-5s5 4 7 4 4-3 6-5" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+                        <path d="M18 8v6M15 11l3 3 3-3" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Cumberland County</h1>
+                    <div class="subtitle">Flood Risk Dashboard &mdash; Chignecto Isthmus</div>
+                </div>
+            </div>
+            <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode">
+                <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
         </div>
 
-        <!-- Tide Stations Section -->
+        <!-- Flood Level Slider -->
         <div class="sidebar-section">
-            <h2><span class="icon">📡</span> Live Tide Stations</h2>
-
-            <!-- Saint John Station -->
-            <div class="tide-widget" id="tide-saintjohn" style="margin-bottom:10px;">
-                <div class="tide-station-name">📍 Saint John, NB (Station 00065 — Bay of Fundy Reference)</div>
-                <div class="tide-level-display">
-                    <span class="tide-level-value" id="tide-value-sj"><span class="loading-spinner"></span></span>
-                    <span class="tide-level-unit">metres (CD)</span>
-                </div>
-                <div class="tide-timestamp" id="tide-time-sj">Fetching...</div>
-                <span class="tide-status normal" id="tide-status-sj">LOADING</span>
-                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+            <div class="section-header">
+                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c2-3 4-5 7-5s5 4 7 4 4-3 6-5"/><path d="M2 19c2-3 4-5 7-5s5 4 7 4 4-3 6-5"/></svg>
+                <h2>Flood Simulation</h2>
             </div>
-
-            <!-- Charlottetown Station -->
-            <div class="tide-widget" id="tide-charlottetown" style="margin-bottom:10px;">
-                <div class="tide-station-name">📍 Charlottetown, PE (Station 00612)</div>
-                <div class="tide-level-display">
-                    <span class="tide-level-value" id="tide-value-ch"><span class="loading-spinner"></span></span>
-                    <span class="tide-level-unit">metres (CD)</span>
+            <div class="flood-slider-container">
+                <div class="slider-display">
+                    <span class="level-label">Water Level</span>
+                    <span><span class="level-value" id="flood-level-display">0.0</span><span class="level-unit">m</span></span>
                 </div>
-                <div class="tide-timestamp" id="tide-time-ch">Fetching...</div>
-                <span class="tide-status normal" id="tide-status-ch">LOADING</span>
-                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
-            </div>
-
-            <!-- Caribou Station -->
-            <div class="tide-widget" id="tide-caribou">
-                <div class="tide-station-name">📍 Caribou, NS (Station 00490 — Northumberland Strait)</div>
-                <div class="tide-level-display">
-                    <span class="tide-level-value" id="tide-value-cb"><span class="loading-spinner"></span></span>
-                    <span class="tide-level-unit">metres (CD)</span>
+                <input type="range" class="flood-slider" id="flood-slider" min="0" max="11" step="1" value="0">
+                <div class="slider-ticks">
+                    <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
                 </div>
-                <div class="tide-timestamp" id="tide-time-cb">Fetching...</div>
-                <span class="tide-status normal" id="tide-status-cb">LOADING</span>
-                <div class="tide-refresh-note">Auto-refresh every 5 min</div>
+                <div class="slider-side-toggle">
+                    <button class="side-btn active" id="btn-both" data-side="both">Both Sides</button>
+                    <button class="side-btn" id="btn-fundy" data-side="fundy">Bay of Fundy</button>
+                    <button class="side-btn" id="btn-north" data-side="north">Northumberland</button>
+                </div>
             </div>
         </div>
 
-        <!-- KPI Section -->
+        <!-- Tide Stations -->
         <div class="sidebar-section">
-            <h2><span class="icon">📊</span> Dashboard KPIs</h2>
-            <div class="kpi-cards">
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-stations">3</div>
-                    <div class="kpi-label">Tide Stations</div>
+            <div class="section-header" id="toggle-tides">
+                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <h2>Live Tide Stations</h2>
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div id="tides-content">
+                <div class="tide-widget" id="tide-saintjohn">
+                    <div class="tide-station-name"><span class="station-dot"></span> Saint John, NB (Station 00065)</div>
+                    <div class="tide-level-display">
+                        <span class="tide-level-value" id="tide-value-sj"><span class="loading-spinner"></span></span>
+                        <span class="tide-level-unit">metres (CD)</span>
+                    </div>
+                    <div class="tide-timestamp" id="tide-time-sj">Fetching data...</div>
+                    <span class="tide-status normal" id="tide-status-sj">LOADING</span>
+                    <div class="tide-refresh-note">Auto-refresh every 5 min</div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-flood-zones">5</div>
-                    <div class="kpi-label">Flood Zones</div>
+                <div class="tide-widget" id="tide-charlottetown">
+                    <div class="tide-station-name"><span class="station-dot"></span> Charlottetown, PE (Station 00612)</div>
+                    <div class="tide-level-display">
+                        <span class="tide-level-value" id="tide-value-ch"><span class="loading-spinner"></span></span>
+                        <span class="tide-level-unit">metres (CD)</span>
+                    </div>
+                    <div class="tide-timestamp" id="tide-time-ch">Fetching data...</div>
+                    <span class="tide-status normal" id="tide-status-ch">LOADING</span>
+                    <div class="tide-refresh-note">Auto-refresh every 5 min</div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-infra">6</div>
-                    <div class="kpi-label">Infra. Markers</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-latency">—</div>
-                    <div class="kpi-label">Data Latency</div>
+                <div class="tide-widget" id="tide-caribou">
+                    <div class="tide-station-name"><span class="station-dot"></span> Caribou, NS (Station 00490)</div>
+                    <div class="tide-level-display">
+                        <span class="tide-level-value" id="tide-value-cb"><span class="loading-spinner"></span></span>
+                        <span class="tide-level-unit">metres (CD)</span>
+                    </div>
+                    <div class="tide-timestamp" id="tide-time-cb">Fetching data...</div>
+                    <span class="tide-status normal" id="tide-status-cb">LOADING</span>
+                    <div class="tide-refresh-note">Auto-refresh every 5 min</div>
                 </div>
             </div>
         </div>
