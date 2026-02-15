@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,9 +11,22 @@
     <link rel="stylesheet" href="styles/map.css" />
 </head>
 <body>
+<!-- Mobile Menu Toggle Button -->
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Open sidebar menu">
+    <svg id="menu-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+    <svg id="menu-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+</button>
+
+<!-- Sidebar Overlay Backdrop -->
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
 <div class="dashboard-container">
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="header-brand">
                 <div class="header-logo">
@@ -302,6 +315,62 @@ function setupToggle(headerId, contentId) {
 }
 setupToggle('toggle-tides', 'tides-content');
 setupToggle('toggle-legend', 'legend-content');
+
+// ---------- MOBILE SIDEBAR TOGGLE ----------
+(function() {
+    var menuBtn = document.getElementById('mobile-menu-toggle');
+    var sidebar = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    var iconOpen = document.getElementById('menu-icon-open');
+    var iconClose = document.getElementById('menu-icon-close');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+        document.body.classList.add('sidebar-open');
+        iconOpen.style.display = 'none';
+        iconClose.style.display = 'block';
+        menuBtn.setAttribute('aria-label', 'Close sidebar menu');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+        document.body.classList.remove('sidebar-open');
+        iconOpen.style.display = 'block';
+        iconClose.style.display = 'none';
+        menuBtn.setAttribute('aria-label', 'Open sidebar menu');
+    }
+
+    if (menuBtn && sidebar && backdrop) {
+        menuBtn.addEventListener('click', function() {
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+
+        backdrop.addEventListener('click', closeSidebar);
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+
+        // Close sidebar when window resizes above mobile breakpoint
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+    }
+
+    // Expose closeSidebar globally so other interactions can use it
+    window.closeMobileSidebar = closeSidebar;
+})();
 
 // ---------- UTILITIES ----------
 function showToast(message, type) {
@@ -805,6 +874,22 @@ function addUserLayerUI(layerId, name) {
 
 // ---------- INITIAL FLOOD LOAD ----------
 updateFloodDisplay(0);
+
+// ---------- MAP RESIZE ON SIDEBAR TOGGLE ----------
+// Leaflet needs invalidateSize when layout changes
+(function() {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        var observer = new MutationObserver(function() {
+            setTimeout(function() { map.invalidateSize(); }, 350);
+        });
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
+    // Also handle window resize
+    window.addEventListener('resize', function() {
+        map.invalidateSize();
+    });
+})();
 
 console.log('Cumberland County Flood Dashboard initialized');
 console.log('Tide stations: Saint John, Charlottetown, Caribou');

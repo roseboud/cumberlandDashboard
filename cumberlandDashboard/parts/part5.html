@@ -134,6 +134,22 @@ function addUserLayerUI(layerId, name) {
 // ---------- INITIAL FLOOD LOAD ----------
 updateFloodDisplay(0);
 
+// ---------- MAP RESIZE ON SIDEBAR TOGGLE ----------
+// Leaflet needs invalidateSize when layout changes
+(function() {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        var observer = new MutationObserver(function() {
+            setTimeout(function() { map.invalidateSize(); }, 350);
+        });
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
+    // Also handle window resize
+    window.addEventListener('resize', function() {
+        map.invalidateSize();
+    });
+})();
+
 console.log('Cumberland County Flood Dashboard initialized');
 console.log('Tide stations: Saint John, Charlottetown, Caribou');
 console.log('Flood data: FundySide + NorthSide (0-11m, 1m increments)');

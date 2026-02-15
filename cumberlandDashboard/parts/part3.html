@@ -75,6 +75,62 @@ function setupToggle(headerId, contentId) {
 setupToggle('toggle-tides', 'tides-content');
 setupToggle('toggle-legend', 'legend-content');
 
+// ---------- MOBILE SIDEBAR TOGGLE ----------
+(function() {
+    var menuBtn = document.getElementById('mobile-menu-toggle');
+    var sidebar = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    var iconOpen = document.getElementById('menu-icon-open');
+    var iconClose = document.getElementById('menu-icon-close');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+        document.body.classList.add('sidebar-open');
+        iconOpen.style.display = 'none';
+        iconClose.style.display = 'block';
+        menuBtn.setAttribute('aria-label', 'Close sidebar menu');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+        document.body.classList.remove('sidebar-open');
+        iconOpen.style.display = 'block';
+        iconClose.style.display = 'none';
+        menuBtn.setAttribute('aria-label', 'Open sidebar menu');
+    }
+
+    if (menuBtn && sidebar && backdrop) {
+        menuBtn.addEventListener('click', function() {
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+
+        backdrop.addEventListener('click', closeSidebar);
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+
+        // Close sidebar when window resizes above mobile breakpoint
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+    }
+
+    // Expose closeSidebar globally so other interactions can use it
+    window.closeMobileSidebar = closeSidebar;
+})();
+
 // ---------- UTILITIES ----------
 function showToast(message, type) {
     type = type || 'info';
