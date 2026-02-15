@@ -1,5 +1,6 @@
 [build]
-  # The subfolder containing index.html and all assets
+  # Base is the repo root, publish is the subfolder with index.html
+  base = "/"
   publish = "cumberlandDashboard"
 
 # Redirect root requests if needed
