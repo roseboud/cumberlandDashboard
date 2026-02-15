@@ -1,8 +1,9 @@
 [build]
-  # No build command needed - static site
+  # Base is already set to cumberlandDashboard in Netlify UI
+  # So publish is relative to that — use "." for current dir
+  base = "cumberlandDashboard"
   command = ""
-  # Serve from the cumberlandDashboard subfolder
-  publish = "cumberlandDashboard/"
+  publish = "."
 
 [[headers]]
   for = "/assets/geojson/*"
