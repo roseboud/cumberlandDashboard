@@ -11,11 +11,36 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, 'assets', 'geojson')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Flood levels to convert (1.0m increments)
-LEVELS = [
-    '0_0m', '1_0m', '2_0m', '3_0m', '4_0m', '5_0m',
-    '6_0m', '7_0m', '8_0m', '9_0m', '10_0m', '11_0m'
-]
+# Flood levels to convert (0.1m increments)
+# filenames use an underscore as the decimal separator (e.g. "0_1m" -> 0.1 m).
+# helpers for creating and interpreting those labels are defined below so the
+# script can treat the underscore as a decimal point when reporting or
+# otherwise working with the elevation value.
+
+MAX_LEVEL = 11.0    # maximum depth in metres; change as needed
+STEP      = 0.1     # increment in metres (0.1 = 10 cm)
+
+
+def level_label(meters: float) -> str:
+    """Return a flood level string for a given depth.
+    Examples:
+        0.0 -> '0_0m'
+        0.1 -> '0_1m'
+        2.3 -> '2_3m'
+    """
+    whole = int(meters)
+    tenths = int(round((meters - whole) * 10))
+    return f"{whole}_{tenths}m"
+
+
+def parse_label(label: str) -> float:
+    """Convert a label like '0_1m' back to a float (0.1).
+    The underscore is treated as the decimal point.
+    """
+    return float(label.replace('_', '.').rstrip('m'))
+
+# build the list of labels we need to process
+LEVELS = [level_label(i * STEP) for i in range(int(MAX_LEVEL / STEP) + 1)]
 
 SIDES = {
     'fundy': os.path.join(BASE_DIR, 'assets', 'FundySide', 'Shapefiles'),
@@ -50,7 +75,12 @@ for side_name, shp_dir in SIDES.items():
             gdf.to_file(out_file, driver='GeoJSON')
             
             fsize = os.path.getsize(out_file) / 1024
-            print(f"  OK: flood_{side_name}_{level}.geojson ({fsize:.0f} KB, {len(gdf)} features)")
+            # convert label back to a numeric value for human‑readable output
+            depth_m = parse_label(level)
+            print(
+                f"  OK: flood_{side_name}_{level}.geojson "
+                f"({fsize:.0f} KB, {len(gdf)} features, {depth_m:.1f} m)"
+            )
             converted += 1
         except Exception as e:
             print(f"  ERROR: {level} - {e}")
