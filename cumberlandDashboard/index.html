@@ -63,8 +63,9 @@
                     <span class="level-label">Water Level</span>
                     <span><span class="level-value" id="flood-level-display">0.0</span><span class="level-unit">m</span></span>
                 </div>
-                <input type="range" class="flood-slider" id="flood-slider" min="0" max="11" step="1" value="0">
+                <input type="range" class="flood-slider" id="flood-slider" min="0" max="11" step="0.1" value="0">
                 <div class="slider-ticks">
+                    <!-- major ticks every metre; decimals will interpolate visually -->
                     <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
                 </div>
                 <div class="slider-side-toggle">
@@ -571,11 +572,19 @@ function getFloodStyle(level) {
     };
 }
 
+// convert numeric level to underscored label used in filenames
+function levelLabel(level) {
+    var whole = Math.floor(level);
+    var tenths = Math.round((level - whole) * 10);
+    return whole + '_' + tenths + 'm';
+}
+
 async function loadFloodLayer(side, level) {
-    var key = side + '_' + level + '_0m';
+    var label = levelLabel(level);
+    var key = side + '_' + label;
     if (floodCache[key]) return floodCache[key];
 
-    var url = 'assets/geojson/flood_' + side + '_' + level + '_0m.geojson';
+    var url = 'assets/geojson/flood_' + side + '_' + label + '.geojson';
     try {
         var response = await fetch(url);
         if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -585,7 +594,7 @@ async function loadFloodLayer(side, level) {
             onEachFeature: function(feature, lyr) {
                 lyr.bindPopup(
                     '<div class="popup-title">Flood Inundation Zone</div>' +
-                    '<div class="popup-row"><span class="popup-label">Water Level:</span><span class="popup-value">' + level + '.0 m</span></div>' +
+                    '<div class="popup-row"><span class="popup-label">Water Level:</span><span class="popup-value">' + level.toFixed(1) + ' m</span></div>' +
                     '<div class="popup-row"><span class="popup-label">Source:</span><span class="popup-value">' + (side === 'fundy' ? 'Bay of Fundy' : 'Northumberland Strait') + '</span></div>' +
                     '<div class="popup-row"><span class="popup-label">Data:</span><span class="popup-value">LiDAR DEM derived</span></div>'
                 );
@@ -606,8 +615,8 @@ async function updateFloodDisplay(level) {
     floodLayerFundy.clearLayers();
     floodLayerNorth.clearLayers();
 
-    document.getElementById('flood-level-display').textContent = level + '.0';
-    document.getElementById('kpi-flood-level').textContent = level + 'm';
+    document.getElementById('flood-level-display').textContent = level.toFixed(1);
+    document.getElementById('kpi-flood-level').textContent = level.toFixed(1) + 'm';
 
     var loadPromises = [];
 
@@ -634,10 +643,12 @@ async function updateFloodDisplay(level) {
 // Slider event
 var sliderTimeout = null;
 document.getElementById('flood-slider').addEventListener('input', function(e) {
-    var level = parseInt(e.target.value);
+    var level = parseFloat(e.target.value);
+    // round to one decimal to avoid floating-point noise
+    level = Math.round(level * 10) / 10;
     currentFloodLevel = level;
-    document.getElementById('flood-level-display').textContent = level + '.0';
-    document.getElementById('kpi-flood-level').textContent = level + 'm';
+    document.getElementById('flood-level-display').textContent = level.toFixed(1);
+    document.getElementById('kpi-flood-level').textContent = level.toFixed(1) + 'm';
 
     if (sliderTimeout) clearTimeout(sliderTimeout);
     sliderTimeout = setTimeout(function() {
