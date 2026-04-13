@@ -1,10 +1,14 @@
 
+
 // ---------- SIDEBAR LAYER TOGGLES (OpenLayers) ----------
 document.getElementById('layer-flood').addEventListener('change', function(e) {
     if (activeFundyLayer) activeFundyLayer.setVisible(e.target.checked);
     if (activeNorthLayer) activeNorthLayer.setVisible(e.target.checked);
 });
 document.getElementById('layer-surge').addEventListener('change', function(e) {
+    if (activeSurgeFundyLayer) activeSurgeFundyLayer.setVisible(e.target.checked);
+    if (activeSurgeNorthLayer) activeSurgeNorthLayer.setVisible(e.target.checked);
+    // Legacy single layer
     if (activeSurgeLayer) activeSurgeLayer.setVisible(e.target.checked);
 });
 document.getElementById('layer-roads').addEventListener('change', function(e) {
@@ -17,132 +21,6 @@ document.getElementById('layer-tides').addEventListener('change', function(e) {
     tideMarkersLayer.setVisible(e.target.checked);
     agrgMarkersLayer.setVisible(e.target.checked);
 });
-
-// ---------- FILE UPLOAD ----------
-var uploadZone = document.getElementById('upload-zone');
-var fileInput = document.getElementById('file-input');
-var userLayersList = document.getElementById('user-layers-list');
-
-uploadZone.addEventListener('click', function() { fileInput.click(); });
-uploadZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); uploadZone.classList.add('drag-over');
-});
-uploadZone.addEventListener('dragleave', function() {
-    uploadZone.classList.remove('drag-over');
-});
-uploadZone.addEventListener('drop', function(e) {
-    e.preventDefault(); uploadZone.classList.remove('drag-over');
-    if (e.dataTransfer.files.length > 0) processUploadedFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', function(e) {
-    if (e.target.files.length > 0) { processUploadedFile(e.target.files[0]); fileInput.value = ''; }
-});
-
-function processUploadedFile(file) {
-    var fileName = file.name.toLowerCase();
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var content = e.target.result;
-        try {
-            if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
-                addUserGeoJSONLayer(file.name, JSON.parse(content));
-            } else if (fileName.endsWith('.csv')) {
-                addUserCSVLayer(file.name, content);
-            } else {
-                showToast('Unsupported format: ' + fileName, 'error');
-            }
-        } catch (err) {
-            showToast('Error parsing file: ' + err.message, 'error');
-        }
-    };
-    reader.readAsText(file);
-}
-
-function addUserGeoJSONLayer(name, geoData) {
-    var layerId = 'user-layer-' + (++userLayerCounter);
-    var fmt = new ol.format.GeoJSON();
-    var features = fmt.readFeatures(geoData, { featureProjection: 'EPSG:3857' });
-    var vectorSource = new ol.source.Vector({ features: features });
-    var layer = new ol.layer.Vector({
-        source: vectorSource,
-        style: new ol.style.Style({
-            fill: new ol.style.Fill({ color: 'rgba(139,92,246,0.3)' }),
-            stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 }),
-            image: new ol.style.Circle({
-                radius: 6,
-                fill: new ol.style.Fill({ color: '#8b5cf6' }),
-                stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 })
-            })
-        }),
-        zIndex: 30
-    });
-    map.addLayer(layer);
-    userLayers[layerId] = layer;
-    addUserLayerUI(layerId, name);
-    var extent = vectorSource.getExtent();
-    if (extent && isFinite(extent[0])) {
-        view.fit(extent, { padding: [30, 30, 30, 30], maxZoom: 16 });
-    }
-    showToast('Layer loaded: ' + name, 'success');
-}
-
-function addUserCSVLayer(name, csvText) {
-    var lines = csvText.trim().split('\n');
-    if (lines.length < 2) { showToast('CSV file appears empty', 'error'); return; }
-    var headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
-    var latIdx = headers.findIndex(function(h) { return h === 'lat' || h === 'latitude'; });
-    var lngIdx = headers.findIndex(function(h) { return h === 'lng' || h === 'lon' || h === 'long' || h === 'longitude'; });
-    if (latIdx === -1 || lngIdx === -1) {
-        showToast('CSV must have Lat and Lng columns', 'error'); return;
-    }
-    var layerId = 'user-layer-' + (++userLayerCounter);
-    var vectorSource = new ol.source.Vector();
-    var count = 0;
-    for (var i = 1; i < lines.length; i++) {
-        var cols = lines[i].split(',').map(function(c) { return c.trim(); });
-        var lat = parseFloat(cols[latIdx]);
-        var lng = parseFloat(cols[lngIdx]);
-        if (!isNaN(lat) && !isNaN(lng)) {
-            var feature = new ol.Feature({
-                geometry: new ol.geom.Point(ol.proj.fromLonLat([lng, lat]))
-            });
-            vectorSource.addFeature(feature);
-            count++;
-        }
-    }
-    if (count === 0) { showToast('No valid coordinates in CSV', 'error'); return; }
-    var layer = new ol.layer.Vector({
-        source: vectorSource,
-        style: new ol.style.Style({
-            image: new ol.style.Circle({
-                radius: 5,
-                fill: new ol.style.Fill({ color: '#8b5cf6' }),
-                stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 })
-            })
-        }),
-        zIndex: 30
-    });
-    map.addLayer(layer);
-    userLayers[layerId] = layer;
-    addUserLayerUI(layerId, name + ' (' + count + ' pts)');
-    showToast('CSV loaded: ' + count + ' points', 'success');
-}
-
-function addUserLayerUI(layerId, name) {
-    var item = document.createElement('div');
-    item.className = 'user-layer-item';
-    item.id = layerId + '-ui';
-    item.innerHTML = '<span class="layer-name" title="' + name + '">' + name + '</span>' +
-                     '<button class="remove-layer" data-layer-id="' + layerId + '">&times;</button>';
-    userLayersList.appendChild(item);
-    item.querySelector('.remove-layer').addEventListener('click', function() {
-        var lid = this.getAttribute('data-layer-id');
-        if (userLayers[lid]) { map.removeLayer(userLayers[lid]); delete userLayers[lid]; }
-        var uiEl = document.getElementById(lid + '-ui');
-        if (uiEl) uiEl.remove();
-        showToast('Layer removed', 'info');
-    });
-}
 
 // ---------- INITIAL FLOOD LOAD ----------
 updateFloodDisplay(0);
@@ -161,12 +39,12 @@ updateFloodDisplay(0);
     });
 })();
 
-console.log('Cumberland County Flood Dashboard v1.3 initialized (OpenLayers + XYZ Tiles)');
+console.log('Cumberland County Flood Dashboard v2.0 initialized (OpenLayers + XYZ Tiles)');
 console.log('CHS tide stations: Saint John, Pointe-du-Chene, Charlottetown, Caribou');
 console.log('AGRG prediction service: agrgims.cogs.nscc.ca (10-day tide+surge+TWL)');
 console.log('Flood data: FundySide + NorthSide (0-11m, 0.1m increments via XYZ tiles)');
-console.log('Surge scenarios: 20yr/100yr x 2020/2050/2100/2150 (Northumberland)');
-console.log('Base maps: Street, Topo, Satellite, Dark');
+console.log('Surge scenarios: 20yr/100yr x Present/2050/2100/2100+AA (Fundy + Northumberland)');
+console.log('Base maps: Street, Topo, CSR, Satellite, Dark');
 
 </script>
 </body>

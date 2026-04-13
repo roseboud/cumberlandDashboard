@@ -1,9 +1,9 @@
 
-        <!-- Storm Surge Scenarios (integrated into simulation area) -->
+        <!-- Storm Surge Scenarios -->
         <div class="sidebar-section">
             <div class="section-header" id="toggle-surge">
                 <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                <h2>Storm Surge Scenarios (NW Strait)</h2>
+                <h2>Storm Surge Scenarios</h2>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div id="surge-content">
@@ -19,10 +19,10 @@
                     <div class="surge-select-row">
                         <label for="surge-horizon">Horizon:</label>
                         <select class="surge-select" id="surge-horizon">
-                            <option value="2020">2020 (Present)</option>
+                            <option value="present">Present Day</option>
                             <option value="2050">2050</option>
                             <option value="2100">2100</option>
-                            <option value="2150">2150</option>
+                            <option value="2100AA">2100+ Accelerated</option>
                         </select>
                     </div>
                     <div class="surge-view-toggle">
@@ -52,32 +52,6 @@
                     <div style="text-align:center;padding:12px;color:var(--text-muted);font-size:0.72rem;">
                         <span class="loading-spinner"></span> Loading AGRG stations&hellip;
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- KPIs -->
-        <div class="sidebar-section">
-            <div class="section-header">
-                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                <h2>Dashboard Summary</h2>
-            </div>
-            <div class="kpi-cards">
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-stations">4</div>
-                    <div class="kpi-label">Tide Stations</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-flood-level">0m</div>
-                    <div class="kpi-label">Sim. Water Level</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-infra">--</div>
-                    <div class="kpi-label">Infrastructure</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-latency">&mdash;</div>
-                    <div class="kpi-label">Data Latency</div>
                 </div>
             </div>
         </div>
@@ -168,23 +142,6 @@
             </div>
         </div>
 
-        <!-- File Upload -->
-        <div class="sidebar-section">
-            <div class="section-header">
-                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <h2>Add Custom Layer</h2>
-            </div>
-            <div class="upload-zone" id="upload-zone">
-                <div class="upload-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <p>Drop file here or click to browse</p>
-                <div class="upload-formats">Supported: .geojson, .json, .csv</div>
-                <input type="file" id="file-input" accept=".json,.geojson,.csv" />
-            </div>
-            <div class="user-layers-list" id="user-layers-list"></div>
-        </div>
-
         <!-- Reference Data -->
         <div class="sidebar-section">
             <div class="section-header">
@@ -268,15 +225,15 @@
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/Combined_events_model.mp4" onclick="openVideoModal(this);return false;">
                         <span class="report-icon video-icon">&#9654;</span>
                         <span class="report-info">
-                            <span class="report-title">Combined Events Model</span>
-                            <span class="report-meta">Multi-hazard flood scenario</span>
+                            <span class="report-title">Combined Events Model &mdash; Oxford Bend</span>
+                            <span class="report-meta">Oxford Bend multi-hazard flood scenario</span>
                         </span>
                     </a>
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/December_2010_Storm_Surge.mp4" onclick="openVideoModal(this);return false;">
                         <span class="report-icon video-icon">&#9654;</span>
                         <span class="report-info">
-                            <span class="report-title">December 2010 Storm Surge</span>
-                            <span class="report-meta">Historical surge event model</span>
+                            <span class="report-title">December 2010 Storm Surge &mdash; Oxford Bend</span>
+                            <span class="report-meta">Oxford Bend historical surge event</span>
                         </span>
                     </a>
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/September_1999_Rainfall.mp4" onclick="openVideoModal(this);return false;">

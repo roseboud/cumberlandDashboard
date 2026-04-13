@@ -12,6 +12,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 18L13 4 8 14 2 8"/></svg>
                 <span class="basemap-label">Topo</span>
             </button>
+            <button class="basemap-btn" data-layer="4" title="Color Shaded Relief">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20l7-7 4 4 9-11"/><path d="M22 20H2"/></svg>
+                <span class="basemap-label">CSR</span>
+            </button>
             <button class="basemap-btn" data-layer="2" title="Satellite">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 <span class="basemap-label">Satellite</span>
@@ -290,9 +294,23 @@ var darkLayer = new ol.layer.Tile({
     zIndex: 0
 });
 
-// Order: Street(0), Topo(1), Satellite(2), Dark(3) — matches basemap switcher buttons
-var baseLayers = [osmBase, topoLayer, satelliteLayer, darkLayer];
-var baseLayerNames = ['Street Map', 'Topographic', 'Satellite', 'Dark'];
+// CSR (Color Shaded Relief) layer — pre-rendered XYZ tiles from AGRG HydroDEM
+var csrLayer = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+        url: 'assets/tiles/csr/{z}/{x}/{y}.png',
+        minZoom: 8,
+        maxZoom: 15,
+        tileSize: 256,
+        crossOrigin: 'anonymous',
+        attributions: '&copy; AGRG CSR'
+    }),
+    visible: false,
+    zIndex: 0
+});
+
+// Order: Street(0), Topo(1), Satellite(2), Dark(3), CSR(4) — matches basemap switcher buttons
+var baseLayers = [osmBase, topoLayer, satelliteLayer, darkLayer, csrLayer];
+var baseLayerNames = ['Street Map', 'Topographic', 'Satellite', 'Dark', 'CSR'];
 
 // Vector layers for roads, infrastructure, tide markers, AGRG markers
 var roadsLayer = new ol.layer.Vector({
@@ -322,7 +340,7 @@ var view = new ol.View({
 
 var map = new ol.Map({
     target: 'map',
-    layers: [osmBase, topoLayer, satelliteLayer, darkLayer, roadsLayer, infraLayer, tideMarkersLayer, agrgMarkersLayer],
+    layers: [osmBase, topoLayer, satelliteLayer, darkLayer, csrLayer, roadsLayer, infraLayer, tideMarkersLayer, agrgMarkersLayer],
     view: view,
     controls: ol.control.defaults.defaults().extend([
         new ol.control.ScaleLine({ units: 'metric' })
@@ -430,7 +448,8 @@ async function fetchTideData(station) {
             timeEl.textContent = dataType + ' \u2014 ' + formatTimestamp(timestamp);
             var latencyMs = now.getTime() - new Date(timestamp).getTime();
             var latencyMin = Math.round(latencyMs / 60000);
-            document.getElementById('kpi-latency').textContent = latencyMin + 'm';
+            var kpiLatEl = document.getElementById('kpi-latency');
+            if (kpiLatEl) kpiLatEl.textContent = latencyMin + 'm';
             var level = parseFloat(cgvdLevel);
             if (level >= station.thresholdCritical) {
                 statusEl.textContent = 'CRITICAL'; statusEl.className = 'tide-status critical';

@@ -19,9 +19,12 @@ cumberlandDashboard/newData/reportsAndModels/*.wmv
 
 # Large DEM COG from scientists (raw source — processed versions used)
 cumberlandDashboard/newData/Cumber_HydroDEM_NoAboiteau_CSRp_1m_Clipped_COGTiff.tif
+cumberlandDashboard/assets/newData/Cumber_HydroDEM_NoAboiteau_CSRp_1m_Clipped_COGTiff.tif
 
 # Reprojected surge COGs (generated locally, too large for git)
 cumberlandDashboard/assets/cog_3857/surge/*.tif
+cumberlandDashboard/assets/cog_3857/surge_new/*.tif
+cumberlandDashboard/assets/cog_3857/csr_3857.tif
 
 # Surge XYZ tiles (committed to git — needed for live site)
 # Can be regenerated locally via generate_surge_tiles.py + generate_extent_tiles.py

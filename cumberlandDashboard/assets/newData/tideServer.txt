@@ -1,0 +1,9 @@
+https://agrgims.cogs.nscc.ca/arcgis/rest/services/mcfm_pro/tide_stns/MapServer
+
+Instructions: I have uploaded the Cumberland CSR COGTiff to the AGRG_Data folder, it's clipped, has overviews, and is in the correct projection so it should display easily in openlayers. 
+ 
+I have also uploaded a tide stations shapefile which has the necessary information to use in conjunction with our tide data service to get the 10 day tide and storm surge prediction. The service is located here: https://agrgims.cogs.nscc.ca/arcgis/rest/services/mcfm_pro/tide_stns/MapServer
+ 
+This service contains one layer which is a point layer of the tide stations, and many tables, named with the tide station ID. The tables contain a unique id, datetime stamp, tide, surge, and total water level. There should be 10 days worth of predictions for each tide station but you should only need the tide stations that are in the shapefile I uploaded. This data is in CGVD28 and Tim would like the charts to be in CGVD2013. To accomplish that each tide station record in the shapefile has a "CGVD28_13" field which is the offset you'll need to apply. Applying that offset of around -0.60m will get the prediction data from our service from CGVD28 to CGVD2013. Please ignore the "CD_CGVD13" field as that is for chart datum to CGVD2013 conversions. Any questions related to this data or tide datum conversions please feel free to ask!
+mcfm_pro/tide_stns (MapServer)
+ 

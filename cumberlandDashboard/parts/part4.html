@@ -19,19 +19,18 @@ function floodTileUrl(side, levelKey) {
 }
 
 // Create a tile layer for a given side + level
-// maxZoom increased to 17 — OpenLayers overzooms z15 tiles smoothly at z16-17
+// No minZoom on layer so it stays visible when zooming out
+// Source maxZoom=15 with no layer maxZoom limit allows OpenLayers to overzoom smoothly
 function createFloodTileLayer(side, level) {
     var key = levelToKey(level);
     return new ol.layer.Tile({
         source: new ol.source.XYZ({
             url: floodTileUrl(side, key),
-            minZoom: 10,
             maxZoom: 15,
             tileSize: 256,
             crossOrigin: 'anonymous',
             transition: 250
         }),
-        maxZoom: 17,
         opacity: 1,
         zIndex: side === 'fundy' ? 10 : 11,
         visible: true
@@ -54,7 +53,8 @@ function updateFloodDisplay(level) {
 
     var displayVal = level.toFixed(1);
     document.getElementById('flood-level-display').textContent = displayVal;
-    document.getElementById('kpi-flood-level').textContent = displayVal + 'm';
+    var kpiFloodEl = document.getElementById('kpi-flood-level');
+    if (kpiFloodEl) kpiFloodEl.textContent = displayVal + 'm';
 
     var showFlood = document.getElementById('layer-flood').checked;
     var key = levelToKey(level);
@@ -100,7 +100,8 @@ function applyLevel(level) {
     sliderEl.value = d;
     inputEl.value = d;
     document.getElementById('flood-level-display').textContent = d;
-    document.getElementById('kpi-flood-level').textContent = d + 'm';
+    var kpiFloodEl = document.getElementById('kpi-flood-level');
+    if (kpiFloodEl) kpiFloodEl.textContent = d + 'm';
     if (sliderTimeout) clearTimeout(sliderTimeout);
     sliderTimeout = setTimeout(function() { updateFloodDisplay(level); }, 300);
 }
@@ -120,35 +121,46 @@ document.querySelectorAll('[data-side]').forEach(function(btn) {
 });
 
 // ---------- STORM SURGE SCENARIO TILES ----------
-// Surge scenarios use XYZ tiles in two views:
-//   Depth: assets/tiles/surge/{scenario}/{z}/{x}/{y}.png (red gradient by depth)
-//   Extent: assets/tiles/surge_extent/{scenario}/{z}/{x}/{y}.png (cyan-blue solid fill)
+// New AGRG data: both Fundy and Northumberland sides, displayed simultaneously
+// Horizons: present, 2050, 2100, 2100AA
+// Return periods: 20yr, 100yr
+// Depth tiles: assets/tiles/surge/{side}/{scenario}/{z}/{x}/{y}.png
+// Extent tiles: assets/tiles/surge_extent/{side}/{scenario}/{z}/{x}/{y}.png
 var currentSurgeView = 'depth'; // 'depth' or 'extent'
 var surgeExtentCache = {};
+var activeSurgeFundyLayer = null;
+var activeSurgeNorthLayer = null;
 
-function surgeTileUrl(returnPeriod, horizon, viewMode) {
+function surgeTileUrl(side, returnPeriod, horizon, viewMode) {
     var folder = viewMode === 'extent' ? 'surge_extent' : 'surge';
-    return 'assets/tiles/' + folder + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
+    return 'assets/tiles/' + folder + '/' + side + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
 }
 
-function createSurgeTileLayer(returnPeriod, horizon, viewMode) {
+function createSurgeTileLayer(side, returnPeriod, horizon, viewMode) {
     return new ol.layer.Tile({
         source: new ol.source.XYZ({
-            url: surgeTileUrl(returnPeriod, horizon, viewMode),
-            minZoom: 10,
+            url: surgeTileUrl(side, returnPeriod, horizon, viewMode),
             maxZoom: 15,
             tileSize: 256,
             crossOrigin: 'anonymous',
             transition: 250
         }),
-        maxZoom: 17,
         opacity: viewMode === 'extent' ? 0.8 : 0.7,
-        zIndex: 12,
+        zIndex: side === 'fundy' ? 12 : 13,
         visible: true
     });
 }
 
-function removeActiveSurgeLayer() {
+function removeActiveSurgeLayers() {
+    if (activeSurgeFundyLayer) {
+        try { map.removeLayer(activeSurgeFundyLayer); } catch(e) {}
+        activeSurgeFundyLayer = null;
+    }
+    if (activeSurgeNorthLayer) {
+        try { map.removeLayer(activeSurgeNorthLayer); } catch(e) {}
+        activeSurgeNorthLayer = null;
+    }
+    // Legacy single layer cleanup
     if (activeSurgeLayer) {
         try { map.removeLayer(activeSurgeLayer); } catch(e) {}
         activeSurgeLayer = null;
@@ -159,34 +171,40 @@ function updateSurgeDisplay() {
     var returnPeriod = document.getElementById('surge-return').value;
     var horizon = document.getElementById('surge-horizon').value;
     var label = document.getElementById('surge-active-label');
-    var kpiEl = document.getElementById('kpi-surge-scenario');
 
-    removeActiveSurgeLayer();
+    removeActiveSurgeLayers();
 
     if (!returnPeriod) {
         label.textContent = 'Select a return period to view surge scenario';
         label.classList.remove('visible');
-        if (kpiEl) kpiEl.textContent = '\u2014';
         return;
     }
 
     var scenarioKey = returnPeriod + '_' + horizon;
-    var cacheKey = scenarioKey + '_' + currentSurgeView;
-    var displayName = returnPeriod.replace('yr', '-Year') + ' / ' + horizon;
+    var displayName = returnPeriod.replace('yr', '-Year') + ' / ' + horizon.replace('present', 'Present Day').replace('2100AA', '2100+ Accelerated');
     var viewLabel = currentSurgeView === 'extent' ? ' (Extent)' : ' (Depth)';
     label.textContent = 'Active: ' + displayName + viewLabel;
     label.classList.add('visible');
-    if (kpiEl) kpiEl.textContent = displayName;
 
-    // Use view-specific cache
-    var cache = currentSurgeView === 'extent' ? surgeExtentCache : surgeTileCache;
-    if (!cache[scenarioKey]) {
-        cache[scenarioKey] = createSurgeTileLayer(returnPeriod, horizon, currentSurgeView);
-    }
-    activeSurgeLayer = cache[scenarioKey];
     var showSurge = document.getElementById('layer-surge').checked;
-    activeSurgeLayer.setVisible(showSurge);
-    map.addLayer(activeSurgeLayer);
+
+    // Fundy side
+    var fundyCacheKey = 'fundy_' + scenarioKey + '_' + currentSurgeView;
+    if (!surgeTileCache[fundyCacheKey]) {
+        surgeTileCache[fundyCacheKey] = createSurgeTileLayer('fundy', returnPeriod, horizon, currentSurgeView);
+    }
+    activeSurgeFundyLayer = surgeTileCache[fundyCacheKey];
+    activeSurgeFundyLayer.setVisible(showSurge);
+    map.addLayer(activeSurgeFundyLayer);
+
+    // Northumberland side
+    var northCacheKey = 'north_' + scenarioKey + '_' + currentSurgeView;
+    if (!surgeTileCache[northCacheKey]) {
+        surgeTileCache[northCacheKey] = createSurgeTileLayer('north', returnPeriod, horizon, currentSurgeView);
+    }
+    activeSurgeNorthLayer = surgeTileCache[northCacheKey];
+    activeSurgeNorthLayer.setVisible(showSurge);
+    map.addLayer(activeSurgeNorthLayer);
 
     showToast('Surge ' + currentSurgeView + ': ' + displayName, 'info');
 }
@@ -256,7 +274,8 @@ fetch('assets/geojson/infrastructure_cumberland.geojson')
             count++;
         });
         infraLayer.getSource().addFeatures(features);
-        document.getElementById('kpi-infra').textContent = count;
+        var kpiInfraEl = document.getElementById('kpi-infra');
+        if (kpiInfraEl) kpiInfraEl.textContent = count;
         showToast('Infrastructure loaded (' + count + ' facilities)', 'info');
     })
     .catch(function(err) { console.error('Infrastructure error:', err); });
@@ -267,6 +286,9 @@ var CUMBERLAND_BBOX = { minLat: 45.2, maxLat: 46.1, minLng: -65.1, maxLng: -63.1
 
 // Cache the service info (tables list) so we only fetch it once
 var agrgServiceInfo = null;
+
+// Store AGRG chart data for deferred rendering when chart is expanded
+var agrgChartData = {};
 
 // Query Layer 0 for station locations, filter to Cumberland area
 async function loadAGRGStations() {
@@ -290,8 +312,6 @@ async function loadAGRGStations() {
             return;
         }
 
-        // AGRG Layer 0 fields: site_id, stn_id, cfg_col, stn_name, prov, latitude, longitude
-        // Tables are named by site_id (e.g. table name "331" matches station site_id 331)
         agrgStations = result.features.map(function(f) {
             var attrs = f.attributes;
             var geom = f.geometry;
@@ -301,11 +321,11 @@ async function loadAGRGStations() {
                 name: attrs.stn_name || ('Station ' + attrs.site_id),
                 lat: geom.y,
                 lng: geom.x,
-                cgvd28_13: -0.60  // Default CGVD28→CGVD2013 offset per AGRG instructions
+                cgvd28_13: -0.60
             };
         });
 
-        // Add markers to map (only Cumberland area stations — not cluttered)
+        // Add markers to map
         agrgStations.forEach(function(station) {
             var feature = new ol.Feature({
                 geometry: new ol.geom.Point(ol.proj.fromLonLat([station.lng, station.lat])),
@@ -345,7 +365,7 @@ async function loadAGRGStations() {
             container.insertAdjacentHTML('beforeend', html);
         });
 
-        // Wire up chart toggles
+        // Wire up chart toggles — defer rendering until chart is actually visible
         container.querySelectorAll('.agrg-toggle-chart').forEach(function(toggle) {
             toggle.addEventListener('click', function() {
                 var canvasId = this.getAttribute('data-canvas');
@@ -356,6 +376,12 @@ async function loadAGRGStations() {
                 this.classList.toggle('collapsed');
                 if (isCollapsed) {
                     chartContainer.style.maxHeight = chartContainer.scrollHeight + 'px';
+                    // Deferred render: draw chart now that container is visible
+                    setTimeout(function() {
+                        if (agrgChartData[canvasId]) {
+                            renderAGRGChart(canvasId, agrgChartData[canvasId]);
+                        }
+                    }, 50);
                 } else {
                     chartContainer.style.maxHeight = '0';
                 }
@@ -376,14 +402,11 @@ async function loadAGRGStations() {
 
 async function fetchAGRGPrediction(station, idx) {
     try {
-        // Tables are named by site_id (e.g. table name "331" for site_id=331)
-        // Use the cached service info to find matching table
         if (!agrgServiceInfo || !agrgServiceInfo.tables) {
             console.warn('No AGRG service info cached');
             return;
         }
 
-        // Match station.siteId to table name
         var tableId = null;
         var siteIdStr = (station.siteId || '').toString();
         for (var t = 0; t < agrgServiceInfo.tables.length; t++) {
@@ -399,7 +422,6 @@ async function fetchAGRGPrediction(station, idx) {
             return;
         }
 
-        // Query the table for predictions — fields: tid, dt (epoch ms), tide, surge, twl
         var tableUrl = AGRG_SERVICE_URL + '/' + tableId + '/query?where=1%3D1&outFields=*&orderByFields=dt&f=json&resultRecordCount=500';
         var tableResp = await fetch(tableUrl);
         if (!tableResp.ok) return;
@@ -430,8 +452,15 @@ async function fetchAGRGPrediction(station, idx) {
         if (surgeEl) surgeEl.textContent = latest.surge.toFixed(2) + 'm';
         if (totalEl) totalEl.textContent = latest.total.toFixed(2) + 'm';
 
-        // Render multi-line chart (tide, surge, total)
-        renderAGRGChart('agrg-canvas-' + idx, records);
+        // Store chart data for deferred rendering
+        var canvasId = 'agrg-canvas-' + idx;
+        agrgChartData[canvasId] = records;
+
+        // Only render if chart container is currently visible (not collapsed)
+        var chartContainer = document.getElementById('agrg-chart-' + idx);
+        if (chartContainer && !chartContainer.classList.contains('collapsed')) {
+            renderAGRGChart(canvasId, records);
+        }
 
     } catch (err) {
         console.error('AGRG prediction fetch error for', station.name, err);
@@ -441,9 +470,13 @@ async function fetchAGRGPrediction(station, idx) {
 function renderAGRGChart(canvasId, records) {
     var canvas = document.getElementById(canvasId);
     if (!canvas || records.length < 2) return;
+
+    // Guard: skip rendering if canvas has no usable dimensions (still hidden)
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) return;
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    var rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);

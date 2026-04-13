@@ -184,11 +184,11 @@
         </div>
 
 
-        <!-- Storm Surge Scenarios (integrated into simulation area) -->
+        <!-- Storm Surge Scenarios -->
         <div class="sidebar-section">
             <div class="section-header" id="toggle-surge">
                 <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                <h2>Storm Surge Scenarios (NW Strait)</h2>
+                <h2>Storm Surge Scenarios</h2>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div id="surge-content">
@@ -204,10 +204,10 @@
                     <div class="surge-select-row">
                         <label for="surge-horizon">Horizon:</label>
                         <select class="surge-select" id="surge-horizon">
-                            <option value="2020">2020 (Present)</option>
+                            <option value="present">Present Day</option>
                             <option value="2050">2050</option>
                             <option value="2100">2100</option>
-                            <option value="2150">2150</option>
+                            <option value="2100AA">2100+ Accelerated</option>
                         </select>
                     </div>
                     <div class="surge-view-toggle">
@@ -237,32 +237,6 @@
                     <div style="text-align:center;padding:12px;color:var(--text-muted);font-size:0.72rem;">
                         <span class="loading-spinner"></span> Loading AGRG stations&hellip;
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- KPIs -->
-        <div class="sidebar-section">
-            <div class="section-header">
-                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                <h2>Dashboard Summary</h2>
-            </div>
-            <div class="kpi-cards">
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-stations">4</div>
-                    <div class="kpi-label">Tide Stations</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-flood-level">0m</div>
-                    <div class="kpi-label">Sim. Water Level</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-infra">--</div>
-                    <div class="kpi-label">Infrastructure</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-latency">&mdash;</div>
-                    <div class="kpi-label">Data Latency</div>
                 </div>
             </div>
         </div>
@@ -353,23 +327,6 @@
             </div>
         </div>
 
-        <!-- File Upload -->
-        <div class="sidebar-section">
-            <div class="section-header">
-                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <h2>Add Custom Layer</h2>
-            </div>
-            <div class="upload-zone" id="upload-zone">
-                <div class="upload-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <p>Drop file here or click to browse</p>
-                <div class="upload-formats">Supported: .geojson, .json, .csv</div>
-                <input type="file" id="file-input" accept=".json,.geojson,.csv" />
-            </div>
-            <div class="user-layers-list" id="user-layers-list"></div>
-        </div>
-
         <!-- Reference Data -->
         <div class="sidebar-section">
             <div class="section-header">
@@ -453,15 +410,15 @@
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/Combined_events_model.mp4" onclick="openVideoModal(this);return false;">
                         <span class="report-icon video-icon">&#9654;</span>
                         <span class="report-info">
-                            <span class="report-title">Combined Events Model</span>
-                            <span class="report-meta">Multi-hazard flood scenario</span>
+                            <span class="report-title">Combined Events Model &mdash; Oxford Bend</span>
+                            <span class="report-meta">Oxford Bend multi-hazard flood scenario</span>
                         </span>
                     </a>
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/December_2010_Storm_Surge.mp4" onclick="openVideoModal(this);return false;">
                         <span class="report-icon video-icon">&#9654;</span>
                         <span class="report-info">
-                            <span class="report-title">December 2010 Storm Surge</span>
-                            <span class="report-meta">Historical surge event model</span>
+                            <span class="report-title">December 2010 Storm Surge &mdash; Oxford Bend</span>
+                            <span class="report-meta">Oxford Bend historical surge event</span>
                         </span>
                     </a>
                     <a class="report-item video-item" href="#" data-video="assets/reportsAndModels/September_1999_Rainfall.mp4" onclick="openVideoModal(this);return false;">
@@ -497,6 +454,10 @@
             <button class="basemap-btn" data-layer="1" title="Topographic">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 18L13 4 8 14 2 8"/></svg>
                 <span class="basemap-label">Topo</span>
+            </button>
+            <button class="basemap-btn" data-layer="4" title="Color Shaded Relief">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20l7-7 4 4 9-11"/><path d="M22 20H2"/></svg>
+                <span class="basemap-label">CSR</span>
             </button>
             <button class="basemap-btn" data-layer="2" title="Satellite">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -776,9 +737,23 @@ var darkLayer = new ol.layer.Tile({
     zIndex: 0
 });
 
-// Order: Street(0), Topo(1), Satellite(2), Dark(3) — matches basemap switcher buttons
-var baseLayers = [osmBase, topoLayer, satelliteLayer, darkLayer];
-var baseLayerNames = ['Street Map', 'Topographic', 'Satellite', 'Dark'];
+// CSR (Color Shaded Relief) layer — pre-rendered XYZ tiles from AGRG HydroDEM
+var csrLayer = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+        url: 'assets/tiles/csr/{z}/{x}/{y}.png',
+        minZoom: 8,
+        maxZoom: 15,
+        tileSize: 256,
+        crossOrigin: 'anonymous',
+        attributions: '&copy; AGRG CSR'
+    }),
+    visible: false,
+    zIndex: 0
+});
+
+// Order: Street(0), Topo(1), Satellite(2), Dark(3), CSR(4) — matches basemap switcher buttons
+var baseLayers = [osmBase, topoLayer, satelliteLayer, darkLayer, csrLayer];
+var baseLayerNames = ['Street Map', 'Topographic', 'Satellite', 'Dark', 'CSR'];
 
 // Vector layers for roads, infrastructure, tide markers, AGRG markers
 var roadsLayer = new ol.layer.Vector({
@@ -808,7 +783,7 @@ var view = new ol.View({
 
 var map = new ol.Map({
     target: 'map',
-    layers: [osmBase, topoLayer, satelliteLayer, darkLayer, roadsLayer, infraLayer, tideMarkersLayer, agrgMarkersLayer],
+    layers: [osmBase, topoLayer, satelliteLayer, darkLayer, csrLayer, roadsLayer, infraLayer, tideMarkersLayer, agrgMarkersLayer],
     view: view,
     controls: ol.control.defaults.defaults().extend([
         new ol.control.ScaleLine({ units: 'metric' })
@@ -916,7 +891,8 @@ async function fetchTideData(station) {
             timeEl.textContent = dataType + ' \u2014 ' + formatTimestamp(timestamp);
             var latencyMs = now.getTime() - new Date(timestamp).getTime();
             var latencyMin = Math.round(latencyMs / 60000);
-            document.getElementById('kpi-latency').textContent = latencyMin + 'm';
+            var kpiLatEl = document.getElementById('kpi-latency');
+            if (kpiLatEl) kpiLatEl.textContent = latencyMin + 'm';
             var level = parseFloat(cgvdLevel);
             if (level >= station.thresholdCritical) {
                 statusEl.textContent = 'CRITICAL'; statusEl.className = 'tide-status critical';
@@ -1299,19 +1275,18 @@ function floodTileUrl(side, levelKey) {
 }
 
 // Create a tile layer for a given side + level
-// maxZoom increased to 17 — OpenLayers overzooms z15 tiles smoothly at z16-17
+// No minZoom on layer so it stays visible when zooming out
+// Source maxZoom=15 with no layer maxZoom limit allows OpenLayers to overzoom smoothly
 function createFloodTileLayer(side, level) {
     var key = levelToKey(level);
     return new ol.layer.Tile({
         source: new ol.source.XYZ({
             url: floodTileUrl(side, key),
-            minZoom: 10,
             maxZoom: 15,
             tileSize: 256,
             crossOrigin: 'anonymous',
             transition: 250
         }),
-        maxZoom: 17,
         opacity: 1,
         zIndex: side === 'fundy' ? 10 : 11,
         visible: true
@@ -1334,7 +1309,8 @@ function updateFloodDisplay(level) {
 
     var displayVal = level.toFixed(1);
     document.getElementById('flood-level-display').textContent = displayVal;
-    document.getElementById('kpi-flood-level').textContent = displayVal + 'm';
+    var kpiFloodEl = document.getElementById('kpi-flood-level');
+    if (kpiFloodEl) kpiFloodEl.textContent = displayVal + 'm';
 
     var showFlood = document.getElementById('layer-flood').checked;
     var key = levelToKey(level);
@@ -1380,7 +1356,8 @@ function applyLevel(level) {
     sliderEl.value = d;
     inputEl.value = d;
     document.getElementById('flood-level-display').textContent = d;
-    document.getElementById('kpi-flood-level').textContent = d + 'm';
+    var kpiFloodEl = document.getElementById('kpi-flood-level');
+    if (kpiFloodEl) kpiFloodEl.textContent = d + 'm';
     if (sliderTimeout) clearTimeout(sliderTimeout);
     sliderTimeout = setTimeout(function() { updateFloodDisplay(level); }, 300);
 }
@@ -1400,35 +1377,46 @@ document.querySelectorAll('[data-side]').forEach(function(btn) {
 });
 
 // ---------- STORM SURGE SCENARIO TILES ----------
-// Surge scenarios use XYZ tiles in two views:
-//   Depth: assets/tiles/surge/{scenario}/{z}/{x}/{y}.png (red gradient by depth)
-//   Extent: assets/tiles/surge_extent/{scenario}/{z}/{x}/{y}.png (cyan-blue solid fill)
+// New AGRG data: both Fundy and Northumberland sides, displayed simultaneously
+// Horizons: present, 2050, 2100, 2100AA
+// Return periods: 20yr, 100yr
+// Depth tiles: assets/tiles/surge/{side}/{scenario}/{z}/{x}/{y}.png
+// Extent tiles: assets/tiles/surge_extent/{side}/{scenario}/{z}/{x}/{y}.png
 var currentSurgeView = 'depth'; // 'depth' or 'extent'
 var surgeExtentCache = {};
+var activeSurgeFundyLayer = null;
+var activeSurgeNorthLayer = null;
 
-function surgeTileUrl(returnPeriod, horizon, viewMode) {
+function surgeTileUrl(side, returnPeriod, horizon, viewMode) {
     var folder = viewMode === 'extent' ? 'surge_extent' : 'surge';
-    return 'assets/tiles/' + folder + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
+    return 'assets/tiles/' + folder + '/' + side + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
 }
 
-function createSurgeTileLayer(returnPeriod, horizon, viewMode) {
+function createSurgeTileLayer(side, returnPeriod, horizon, viewMode) {
     return new ol.layer.Tile({
         source: new ol.source.XYZ({
-            url: surgeTileUrl(returnPeriod, horizon, viewMode),
-            minZoom: 10,
+            url: surgeTileUrl(side, returnPeriod, horizon, viewMode),
             maxZoom: 15,
             tileSize: 256,
             crossOrigin: 'anonymous',
             transition: 250
         }),
-        maxZoom: 17,
         opacity: viewMode === 'extent' ? 0.8 : 0.7,
-        zIndex: 12,
+        zIndex: side === 'fundy' ? 12 : 13,
         visible: true
     });
 }
 
-function removeActiveSurgeLayer() {
+function removeActiveSurgeLayers() {
+    if (activeSurgeFundyLayer) {
+        try { map.removeLayer(activeSurgeFundyLayer); } catch(e) {}
+        activeSurgeFundyLayer = null;
+    }
+    if (activeSurgeNorthLayer) {
+        try { map.removeLayer(activeSurgeNorthLayer); } catch(e) {}
+        activeSurgeNorthLayer = null;
+    }
+    // Legacy single layer cleanup
     if (activeSurgeLayer) {
         try { map.removeLayer(activeSurgeLayer); } catch(e) {}
         activeSurgeLayer = null;
@@ -1439,34 +1427,40 @@ function updateSurgeDisplay() {
     var returnPeriod = document.getElementById('surge-return').value;
     var horizon = document.getElementById('surge-horizon').value;
     var label = document.getElementById('surge-active-label');
-    var kpiEl = document.getElementById('kpi-surge-scenario');
 
-    removeActiveSurgeLayer();
+    removeActiveSurgeLayers();
 
     if (!returnPeriod) {
         label.textContent = 'Select a return period to view surge scenario';
         label.classList.remove('visible');
-        if (kpiEl) kpiEl.textContent = '\u2014';
         return;
     }
 
     var scenarioKey = returnPeriod + '_' + horizon;
-    var cacheKey = scenarioKey + '_' + currentSurgeView;
-    var displayName = returnPeriod.replace('yr', '-Year') + ' / ' + horizon;
+    var displayName = returnPeriod.replace('yr', '-Year') + ' / ' + horizon.replace('present', 'Present Day').replace('2100AA', '2100+ Accelerated');
     var viewLabel = currentSurgeView === 'extent' ? ' (Extent)' : ' (Depth)';
     label.textContent = 'Active: ' + displayName + viewLabel;
     label.classList.add('visible');
-    if (kpiEl) kpiEl.textContent = displayName;
 
-    // Use view-specific cache
-    var cache = currentSurgeView === 'extent' ? surgeExtentCache : surgeTileCache;
-    if (!cache[scenarioKey]) {
-        cache[scenarioKey] = createSurgeTileLayer(returnPeriod, horizon, currentSurgeView);
-    }
-    activeSurgeLayer = cache[scenarioKey];
     var showSurge = document.getElementById('layer-surge').checked;
-    activeSurgeLayer.setVisible(showSurge);
-    map.addLayer(activeSurgeLayer);
+
+    // Fundy side
+    var fundyCacheKey = 'fundy_' + scenarioKey + '_' + currentSurgeView;
+    if (!surgeTileCache[fundyCacheKey]) {
+        surgeTileCache[fundyCacheKey] = createSurgeTileLayer('fundy', returnPeriod, horizon, currentSurgeView);
+    }
+    activeSurgeFundyLayer = surgeTileCache[fundyCacheKey];
+    activeSurgeFundyLayer.setVisible(showSurge);
+    map.addLayer(activeSurgeFundyLayer);
+
+    // Northumberland side
+    var northCacheKey = 'north_' + scenarioKey + '_' + currentSurgeView;
+    if (!surgeTileCache[northCacheKey]) {
+        surgeTileCache[northCacheKey] = createSurgeTileLayer('north', returnPeriod, horizon, currentSurgeView);
+    }
+    activeSurgeNorthLayer = surgeTileCache[northCacheKey];
+    activeSurgeNorthLayer.setVisible(showSurge);
+    map.addLayer(activeSurgeNorthLayer);
 
     showToast('Surge ' + currentSurgeView + ': ' + displayName, 'info');
 }
@@ -1536,7 +1530,8 @@ fetch('assets/geojson/infrastructure_cumberland.geojson')
             count++;
         });
         infraLayer.getSource().addFeatures(features);
-        document.getElementById('kpi-infra').textContent = count;
+        var kpiInfraEl = document.getElementById('kpi-infra');
+        if (kpiInfraEl) kpiInfraEl.textContent = count;
         showToast('Infrastructure loaded (' + count + ' facilities)', 'info');
     })
     .catch(function(err) { console.error('Infrastructure error:', err); });
@@ -1547,6 +1542,9 @@ var CUMBERLAND_BBOX = { minLat: 45.2, maxLat: 46.1, minLng: -65.1, maxLng: -63.1
 
 // Cache the service info (tables list) so we only fetch it once
 var agrgServiceInfo = null;
+
+// Store AGRG chart data for deferred rendering when chart is expanded
+var agrgChartData = {};
 
 // Query Layer 0 for station locations, filter to Cumberland area
 async function loadAGRGStations() {
@@ -1570,8 +1568,6 @@ async function loadAGRGStations() {
             return;
         }
 
-        // AGRG Layer 0 fields: site_id, stn_id, cfg_col, stn_name, prov, latitude, longitude
-        // Tables are named by site_id (e.g. table name "331" matches station site_id 331)
         agrgStations = result.features.map(function(f) {
             var attrs = f.attributes;
             var geom = f.geometry;
@@ -1581,11 +1577,11 @@ async function loadAGRGStations() {
                 name: attrs.stn_name || ('Station ' + attrs.site_id),
                 lat: geom.y,
                 lng: geom.x,
-                cgvd28_13: -0.60  // Default CGVD28→CGVD2013 offset per AGRG instructions
+                cgvd28_13: -0.60
             };
         });
 
-        // Add markers to map (only Cumberland area stations — not cluttered)
+        // Add markers to map
         agrgStations.forEach(function(station) {
             var feature = new ol.Feature({
                 geometry: new ol.geom.Point(ol.proj.fromLonLat([station.lng, station.lat])),
@@ -1625,7 +1621,7 @@ async function loadAGRGStations() {
             container.insertAdjacentHTML('beforeend', html);
         });
 
-        // Wire up chart toggles
+        // Wire up chart toggles — defer rendering until chart is actually visible
         container.querySelectorAll('.agrg-toggle-chart').forEach(function(toggle) {
             toggle.addEventListener('click', function() {
                 var canvasId = this.getAttribute('data-canvas');
@@ -1636,6 +1632,12 @@ async function loadAGRGStations() {
                 this.classList.toggle('collapsed');
                 if (isCollapsed) {
                     chartContainer.style.maxHeight = chartContainer.scrollHeight + 'px';
+                    // Deferred render: draw chart now that container is visible
+                    setTimeout(function() {
+                        if (agrgChartData[canvasId]) {
+                            renderAGRGChart(canvasId, agrgChartData[canvasId]);
+                        }
+                    }, 50);
                 } else {
                     chartContainer.style.maxHeight = '0';
                 }
@@ -1656,14 +1658,11 @@ async function loadAGRGStations() {
 
 async function fetchAGRGPrediction(station, idx) {
     try {
-        // Tables are named by site_id (e.g. table name "331" for site_id=331)
-        // Use the cached service info to find matching table
         if (!agrgServiceInfo || !agrgServiceInfo.tables) {
             console.warn('No AGRG service info cached');
             return;
         }
 
-        // Match station.siteId to table name
         var tableId = null;
         var siteIdStr = (station.siteId || '').toString();
         for (var t = 0; t < agrgServiceInfo.tables.length; t++) {
@@ -1679,7 +1678,6 @@ async function fetchAGRGPrediction(station, idx) {
             return;
         }
 
-        // Query the table for predictions — fields: tid, dt (epoch ms), tide, surge, twl
         var tableUrl = AGRG_SERVICE_URL + '/' + tableId + '/query?where=1%3D1&outFields=*&orderByFields=dt&f=json&resultRecordCount=500';
         var tableResp = await fetch(tableUrl);
         if (!tableResp.ok) return;
@@ -1710,8 +1708,15 @@ async function fetchAGRGPrediction(station, idx) {
         if (surgeEl) surgeEl.textContent = latest.surge.toFixed(2) + 'm';
         if (totalEl) totalEl.textContent = latest.total.toFixed(2) + 'm';
 
-        // Render multi-line chart (tide, surge, total)
-        renderAGRGChart('agrg-canvas-' + idx, records);
+        // Store chart data for deferred rendering
+        var canvasId = 'agrg-canvas-' + idx;
+        agrgChartData[canvasId] = records;
+
+        // Only render if chart container is currently visible (not collapsed)
+        var chartContainer = document.getElementById('agrg-chart-' + idx);
+        if (chartContainer && !chartContainer.classList.contains('collapsed')) {
+            renderAGRGChart(canvasId, records);
+        }
 
     } catch (err) {
         console.error('AGRG prediction fetch error for', station.name, err);
@@ -1721,9 +1726,13 @@ async function fetchAGRGPrediction(station, idx) {
 function renderAGRGChart(canvasId, records) {
     var canvas = document.getElementById(canvasId);
     if (!canvas || records.length < 2) return;
+
+    // Guard: skip rendering if canvas has no usable dimensions (still hidden)
+    var rect = canvas.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) return;
+
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
-    var rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
@@ -1774,12 +1783,16 @@ function renderAGRGChart(canvasId, records) {
 loadAGRGStations();
 
 
+
 // ---------- SIDEBAR LAYER TOGGLES (OpenLayers) ----------
 document.getElementById('layer-flood').addEventListener('change', function(e) {
     if (activeFundyLayer) activeFundyLayer.setVisible(e.target.checked);
     if (activeNorthLayer) activeNorthLayer.setVisible(e.target.checked);
 });
 document.getElementById('layer-surge').addEventListener('change', function(e) {
+    if (activeSurgeFundyLayer) activeSurgeFundyLayer.setVisible(e.target.checked);
+    if (activeSurgeNorthLayer) activeSurgeNorthLayer.setVisible(e.target.checked);
+    // Legacy single layer
     if (activeSurgeLayer) activeSurgeLayer.setVisible(e.target.checked);
 });
 document.getElementById('layer-roads').addEventListener('change', function(e) {
@@ -1792,132 +1805,6 @@ document.getElementById('layer-tides').addEventListener('change', function(e) {
     tideMarkersLayer.setVisible(e.target.checked);
     agrgMarkersLayer.setVisible(e.target.checked);
 });
-
-// ---------- FILE UPLOAD ----------
-var uploadZone = document.getElementById('upload-zone');
-var fileInput = document.getElementById('file-input');
-var userLayersList = document.getElementById('user-layers-list');
-
-uploadZone.addEventListener('click', function() { fileInput.click(); });
-uploadZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); uploadZone.classList.add('drag-over');
-});
-uploadZone.addEventListener('dragleave', function() {
-    uploadZone.classList.remove('drag-over');
-});
-uploadZone.addEventListener('drop', function(e) {
-    e.preventDefault(); uploadZone.classList.remove('drag-over');
-    if (e.dataTransfer.files.length > 0) processUploadedFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', function(e) {
-    if (e.target.files.length > 0) { processUploadedFile(e.target.files[0]); fileInput.value = ''; }
-});
-
-function processUploadedFile(file) {
-    var fileName = file.name.toLowerCase();
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var content = e.target.result;
-        try {
-            if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
-                addUserGeoJSONLayer(file.name, JSON.parse(content));
-            } else if (fileName.endsWith('.csv')) {
-                addUserCSVLayer(file.name, content);
-            } else {
-                showToast('Unsupported format: ' + fileName, 'error');
-            }
-        } catch (err) {
-            showToast('Error parsing file: ' + err.message, 'error');
-        }
-    };
-    reader.readAsText(file);
-}
-
-function addUserGeoJSONLayer(name, geoData) {
-    var layerId = 'user-layer-' + (++userLayerCounter);
-    var fmt = new ol.format.GeoJSON();
-    var features = fmt.readFeatures(geoData, { featureProjection: 'EPSG:3857' });
-    var vectorSource = new ol.source.Vector({ features: features });
-    var layer = new ol.layer.Vector({
-        source: vectorSource,
-        style: new ol.style.Style({
-            fill: new ol.style.Fill({ color: 'rgba(139,92,246,0.3)' }),
-            stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 }),
-            image: new ol.style.Circle({
-                radius: 6,
-                fill: new ol.style.Fill({ color: '#8b5cf6' }),
-                stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 })
-            })
-        }),
-        zIndex: 30
-    });
-    map.addLayer(layer);
-    userLayers[layerId] = layer;
-    addUserLayerUI(layerId, name);
-    var extent = vectorSource.getExtent();
-    if (extent && isFinite(extent[0])) {
-        view.fit(extent, { padding: [30, 30, 30, 30], maxZoom: 16 });
-    }
-    showToast('Layer loaded: ' + name, 'success');
-}
-
-function addUserCSVLayer(name, csvText) {
-    var lines = csvText.trim().split('\n');
-    if (lines.length < 2) { showToast('CSV file appears empty', 'error'); return; }
-    var headers = lines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
-    var latIdx = headers.findIndex(function(h) { return h === 'lat' || h === 'latitude'; });
-    var lngIdx = headers.findIndex(function(h) { return h === 'lng' || h === 'lon' || h === 'long' || h === 'longitude'; });
-    if (latIdx === -1 || lngIdx === -1) {
-        showToast('CSV must have Lat and Lng columns', 'error'); return;
-    }
-    var layerId = 'user-layer-' + (++userLayerCounter);
-    var vectorSource = new ol.source.Vector();
-    var count = 0;
-    for (var i = 1; i < lines.length; i++) {
-        var cols = lines[i].split(',').map(function(c) { return c.trim(); });
-        var lat = parseFloat(cols[latIdx]);
-        var lng = parseFloat(cols[lngIdx]);
-        if (!isNaN(lat) && !isNaN(lng)) {
-            var feature = new ol.Feature({
-                geometry: new ol.geom.Point(ol.proj.fromLonLat([lng, lat]))
-            });
-            vectorSource.addFeature(feature);
-            count++;
-        }
-    }
-    if (count === 0) { showToast('No valid coordinates in CSV', 'error'); return; }
-    var layer = new ol.layer.Vector({
-        source: vectorSource,
-        style: new ol.style.Style({
-            image: new ol.style.Circle({
-                radius: 5,
-                fill: new ol.style.Fill({ color: '#8b5cf6' }),
-                stroke: new ol.style.Stroke({ color: '#6d28d9', width: 2 })
-            })
-        }),
-        zIndex: 30
-    });
-    map.addLayer(layer);
-    userLayers[layerId] = layer;
-    addUserLayerUI(layerId, name + ' (' + count + ' pts)');
-    showToast('CSV loaded: ' + count + ' points', 'success');
-}
-
-function addUserLayerUI(layerId, name) {
-    var item = document.createElement('div');
-    item.className = 'user-layer-item';
-    item.id = layerId + '-ui';
-    item.innerHTML = '<span class="layer-name" title="' + name + '">' + name + '</span>' +
-                     '<button class="remove-layer" data-layer-id="' + layerId + '">&times;</button>';
-    userLayersList.appendChild(item);
-    item.querySelector('.remove-layer').addEventListener('click', function() {
-        var lid = this.getAttribute('data-layer-id');
-        if (userLayers[lid]) { map.removeLayer(userLayers[lid]); delete userLayers[lid]; }
-        var uiEl = document.getElementById(lid + '-ui');
-        if (uiEl) uiEl.remove();
-        showToast('Layer removed', 'info');
-    });
-}
 
 // ---------- INITIAL FLOOD LOAD ----------
 updateFloodDisplay(0);
@@ -1936,12 +1823,12 @@ updateFloodDisplay(0);
     });
 })();
 
-console.log('Cumberland County Flood Dashboard v1.3 initialized (OpenLayers + XYZ Tiles)');
+console.log('Cumberland County Flood Dashboard v2.0 initialized (OpenLayers + XYZ Tiles)');
 console.log('CHS tide stations: Saint John, Pointe-du-Chene, Charlottetown, Caribou');
 console.log('AGRG prediction service: agrgims.cogs.nscc.ca (10-day tide+surge+TWL)');
 console.log('Flood data: FundySide + NorthSide (0-11m, 0.1m increments via XYZ tiles)');
-console.log('Surge scenarios: 20yr/100yr x 2020/2050/2100/2150 (Northumberland)');
-console.log('Base maps: Street, Topo, Satellite, Dark');
+console.log('Surge scenarios: 20yr/100yr x Present/2050/2100/2100+AA (Fundy + Northumberland)');
+console.log('Base maps: Street, Topo, CSR, Satellite, Dark');
 
 </script>
 </body>
