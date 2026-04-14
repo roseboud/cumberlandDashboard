@@ -40,10 +40,17 @@ function createFloodTileLayer(side, level) {
 var activeFundyLayer = null;
 var activeNorthLayer = null;
 var floodTileCache = {};
+// Track all flood layers currently on the map to prevent stacking/merge bugs
+var floodLayersOnMap = [];
 
 function removeActiveFloodLayers() {
-    if (activeFundyLayer) { try { map.removeLayer(activeFundyLayer); } catch(e) {} activeFundyLayer = null; }
-    if (activeNorthLayer) { try { map.removeLayer(activeNorthLayer); } catch(e) {} activeNorthLayer = null; }
+    // Remove ALL flood layers from the map (prevents stacking when switching levels/sides)
+    floodLayersOnMap.forEach(function(layer) {
+        try { map.removeLayer(layer); } catch(e) {}
+    });
+    floodLayersOnMap = [];
+    activeFundyLayer = null;
+    activeNorthLayer = null;
 }
 
 function updateFloodDisplay(level) {
@@ -59,23 +66,27 @@ function updateFloodDisplay(level) {
     var showFlood = document.getElementById('layer-flood').checked;
     var key = levelToKey(level);
 
-    if (currentSide === 'both' || currentSide === 'fundy') {
-        var ckF = 'fundy_' + key;
-        if (!floodTileCache[ckF]) {
-            floodTileCache[ckF] = createFloodTileLayer('fundy', level);
+    if (level > 0) {
+        if (currentSide === 'both' || currentSide === 'fundy') {
+            var ckF = 'fundy_' + key;
+            if (!floodTileCache[ckF]) {
+                floodTileCache[ckF] = createFloodTileLayer('fundy', level);
+            }
+            activeFundyLayer = floodTileCache[ckF];
+            activeFundyLayer.setVisible(showFlood);
+            map.addLayer(activeFundyLayer);
+            floodLayersOnMap.push(activeFundyLayer);
         }
-        activeFundyLayer = floodTileCache[ckF];
-        map.addLayer(activeFundyLayer);
-        activeFundyLayer.setVisible(showFlood);
-    }
-    if (currentSide === 'both' || currentSide === 'north') {
-        var ckN = 'north_' + key;
-        if (!floodTileCache[ckN]) {
-            floodTileCache[ckN] = createFloodTileLayer('north', level);
+        if (currentSide === 'both' || currentSide === 'north') {
+            var ckN = 'north_' + key;
+            if (!floodTileCache[ckN]) {
+                floodTileCache[ckN] = createFloodTileLayer('north', level);
+            }
+            activeNorthLayer = floodTileCache[ckN];
+            activeNorthLayer.setVisible(showFlood);
+            map.addLayer(activeNorthLayer);
+            floodLayersOnMap.push(activeNorthLayer);
         }
-        activeNorthLayer = floodTileCache[ckN];
-        map.addLayer(activeNorthLayer);
-        activeNorthLayer.setVisible(showFlood);
     }
 
     setTimeout(function() {
@@ -124,28 +135,24 @@ document.querySelectorAll('[data-side]').forEach(function(btn) {
 // New AGRG data: both Fundy and Northumberland sides, displayed simultaneously
 // Horizons: present, 2050, 2100, 2100AA
 // Return periods: 20yr, 100yr
-// Depth tiles: assets/tiles/surge/{side}/{scenario}/{z}/{x}/{y}.png
-// Extent tiles: assets/tiles/surge_extent/{side}/{scenario}/{z}/{x}/{y}.png
-var currentSurgeView = 'depth'; // 'depth' or 'extent'
-var surgeExtentCache = {};
+// Extent tiles only: assets/tiles/surge_extent/{side}/{scenario}/{z}/{x}/{y}.png
 var activeSurgeFundyLayer = null;
 var activeSurgeNorthLayer = null;
 
-function surgeTileUrl(side, returnPeriod, horizon, viewMode) {
-    var folder = viewMode === 'extent' ? 'surge_extent' : 'surge';
-    return 'assets/tiles/' + folder + '/' + side + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
+function surgeTileUrl(side, returnPeriod, horizon) {
+    return 'assets/tiles/surge_extent/' + side + '/' + returnPeriod + '_' + horizon + '/{z}/{x}/{y}.png';
 }
 
-function createSurgeTileLayer(side, returnPeriod, horizon, viewMode) {
+function createSurgeTileLayer(side, returnPeriod, horizon) {
     return new ol.layer.Tile({
         source: new ol.source.XYZ({
-            url: surgeTileUrl(side, returnPeriod, horizon, viewMode),
+            url: surgeTileUrl(side, returnPeriod, horizon),
             maxZoom: 15,
             tileSize: 256,
             crossOrigin: 'anonymous',
             transition: 250
         }),
-        opacity: viewMode === 'extent' ? 0.8 : 0.7,
+        opacity: 0.8,
         zIndex: side === 'fundy' ? 12 : 13,
         visible: true
     });
@@ -167,6 +174,8 @@ function removeActiveSurgeLayers() {
     }
 }
 
+var surgeTileCache = {};
+
 function updateSurgeDisplay() {
     var returnPeriod = document.getElementById('surge-return').value;
     var horizon = document.getElementById('surge-horizon').value;
@@ -182,45 +191,34 @@ function updateSurgeDisplay() {
 
     var scenarioKey = returnPeriod + '_' + horizon;
     var displayName = returnPeriod.replace('yr', '-Year') + ' / ' + horizon.replace('present', 'Present Day').replace('2100AA', '2100+ Accelerated');
-    var viewLabel = currentSurgeView === 'extent' ? ' (Extent)' : ' (Depth)';
-    label.textContent = 'Active: ' + displayName + viewLabel;
+    label.textContent = 'Active: ' + displayName;
     label.classList.add('visible');
 
     var showSurge = document.getElementById('layer-surge').checked;
 
-    // Fundy side
-    var fundyCacheKey = 'fundy_' + scenarioKey + '_' + currentSurgeView;
+    // Fundy side (extent only)
+    var fundyCacheKey = 'fundy_' + scenarioKey;
     if (!surgeTileCache[fundyCacheKey]) {
-        surgeTileCache[fundyCacheKey] = createSurgeTileLayer('fundy', returnPeriod, horizon, currentSurgeView);
+        surgeTileCache[fundyCacheKey] = createSurgeTileLayer('fundy', returnPeriod, horizon);
     }
     activeSurgeFundyLayer = surgeTileCache[fundyCacheKey];
     activeSurgeFundyLayer.setVisible(showSurge);
     map.addLayer(activeSurgeFundyLayer);
 
-    // Northumberland side
-    var northCacheKey = 'north_' + scenarioKey + '_' + currentSurgeView;
+    // Northumberland side (extent only)
+    var northCacheKey = 'north_' + scenarioKey;
     if (!surgeTileCache[northCacheKey]) {
-        surgeTileCache[northCacheKey] = createSurgeTileLayer('north', returnPeriod, horizon, currentSurgeView);
+        surgeTileCache[northCacheKey] = createSurgeTileLayer('north', returnPeriod, horizon);
     }
     activeSurgeNorthLayer = surgeTileCache[northCacheKey];
     activeSurgeNorthLayer.setVisible(showSurge);
     map.addLayer(activeSurgeNorthLayer);
 
-    showToast('Surge ' + currentSurgeView + ': ' + displayName, 'info');
+    showToast('Surge scenario: ' + displayName, 'info');
 }
 
 document.getElementById('surge-return').addEventListener('change', updateSurgeDisplay);
 document.getElementById('surge-horizon').addEventListener('change', updateSurgeDisplay);
-
-// Depth/Extent view toggle
-document.querySelectorAll('[data-surge-view]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('[data-surge-view]').forEach(function(b) { b.classList.remove('active'); });
-        this.classList.add('active');
-        currentSurgeView = this.getAttribute('data-surge-view');
-        updateSurgeDisplay();
-    });
-});
 
 // ---------- ROAD NETWORK ----------
 fetch('assets/geojson/roads_cumberland.geojson')

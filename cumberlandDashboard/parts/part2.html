@@ -25,13 +25,6 @@
                             <option value="2100AA">2100+ Accelerated</option>
                         </select>
                     </div>
-                    <div class="surge-view-toggle">
-                        <label style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);">View:</label>
-                        <div class="side-btn-group" style="margin-left:6px;">
-                            <button class="side-btn active" data-surge-view="depth" title="Flood depth (red gradient)">Depth</button>
-                            <button class="side-btn" data-surge-view="extent" title="Flood extent (blue fill)">Extent</button>
-                        </div>
-                    </div>
                     <div class="surge-active-label" id="surge-active-label">Select a return period to view surge scenario</div>
                 </div>
             </div>
@@ -69,8 +62,8 @@
             </div>
             <div class="layer-toggle">
                 <input type="checkbox" id="layer-surge" checked>
-                <span class="layer-color-swatch" style="background: rgba(220, 38, 38, 0.5);"></span>
-                <label for="layer-surge">Storm Surge Overlay</label>
+                <span class="layer-color-swatch" style="background: rgba(6, 147, 227, 0.5);"></span>
+                <label for="layer-surge">Storm Surge Extent</label>
             </div>
             <div class="layer-toggle">
                 <input type="checkbox" id="layer-roads" checked>
@@ -103,12 +96,8 @@
                         <span>Flood Inundation Zone</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-area" style="background: rgba(220, 38, 38, 0.35);"></div>
-                        <span>Surge Depth (red)</span>
-                    </div>
-                    <div class="legend-item">
                         <div class="legend-area" style="background: rgba(6, 147, 227, 0.45);"></div>
-                        <span>Surge Extent (blue)</span>
+                        <span>Storm Surge Extent</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-line" style="background: #c0392b;"></div>
