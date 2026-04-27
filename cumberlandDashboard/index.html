@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Cumberland County Flood Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta name="description" content="Real-time flood risk monitoring dashboard for Cumberland County, Nova Scotia — Chignecto Isthmus. Tide data, storm surge scenarios, and LiDAR flood inundation mapping.">
+    <meta name="robots" content="index, follow">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- OpenLayers CSS (pinned version) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.2.1/ol.css" />
+    <!-- OpenLayers CSS (pinned version with SRI) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.2.1/ol.css" integrity="sha384-Jpg1uvTciFJuHq+90Ly0/2SKRT9yS5OhbIN5FuFoFWji9fc44ok8xxO88CJi8Z5W" crossorigin="anonymous" />
     <link rel="stylesheet" href="styles/map.css" />
 </head>
 <body>
@@ -574,10 +577,10 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- OpenLayers JS -->
-<script src="https://cdn.jsdelivr.net/npm/ol@10.2.1/dist/ol.js"></script>
-<!-- proj4js for projection support -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<!-- OpenLayers JS (pinned with SRI) -->
+<script src="https://cdn.jsdelivr.net/npm/ol@10.2.1/dist/ol.js" integrity="sha384-2biaJbygszOKXKsLbF+auMBrB377U1RJUvQIsPmEOtUSKzkcsTOZSykhqnkmx2QU" crossorigin="anonymous"></script>
+<!-- proj4js for projection support (pinned with SRI) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js" integrity="sha384-ya9rOV6flD2e7foN1ut7/l/2s6X6qzHni8jM2di15mILoBTx+nT9/u/FGLOcNFQG" crossorigin="anonymous"></script>
 <!-- GeoTIFF.js removed — flood data now served as pre-rendered XYZ tiles -->
 
 <script>
@@ -1071,7 +1074,7 @@ async function refreshAllTides() {
 }
 
 refreshAllTides();
-setInterval(refreshAllTides, 300000);
+// Note: recurring tide refresh is handled by scheduleTideRefresh() with error backoff (below)
 
 // ---------- TIDE CHART EXPAND/COLLAPSE ----------
 document.querySelectorAll('.tide-chart-toggle').forEach(function(toggle) {
@@ -1297,12 +1300,14 @@ map.on('click', function(evt) {
             '<div class="popup-row"><span class="popup-label">Critical:</span><span class="popup-value">' + s.thresholdCritical + 'm</span></div>';
         popup.setPosition(evt.coordinate);
     } else if (feature && feature.get('agrgStation')) {
-        // AGRG prediction station popup
+        // AGRG prediction station popup (sanitized)
         var a = feature.get('agrgStation');
+        var safeAgrgName = escapeHtml(a.name || 'AGRG Station ' + a.siteId);
+        var safeSiteId = escapeHtml(String(a.siteId));
         popupEl.innerHTML =
-            '<div class="popup-title">' + (a.name || 'AGRG Station ' + a.siteId) + '</div>' +
+            '<div class="popup-title">' + safeAgrgName + '</div>' +
             '<div class="popup-row"><span class="popup-label">Type:</span><span class="popup-value">AGRG Prediction Station</span></div>' +
-            '<div class="popup-row"><span class="popup-label">Site ID:</span><span class="popup-value">' + a.siteId + '</span></div>' +
+            '<div class="popup-row"><span class="popup-label">Site ID:</span><span class="popup-value">' + safeSiteId + '</span></div>' +
             '<div class="popup-row"><span class="popup-label">CGVD28→13 Offset:</span><span class="popup-value">' + (a.cgvd28_13 || '-0.60') + 'm</span></div>' +
             '<div class="popup-row"><span class="popup-label">Coordinates:</span><span class="popup-value">' + a.lat.toFixed(4) + ', ' + a.lng.toFixed(4) + '</span></div>';
         popup.setPosition(evt.coordinate);
@@ -1707,8 +1712,9 @@ async function loadAGRGStations() {
         agrgStations.forEach(function(station, idx) {
             var widgetId = 'agrg-widget-' + idx;
             var canvasId = 'agrg-canvas-' + idx;
+            var safeStationName = escapeHtml(station.name);
             var html = '<div class="agrg-prediction-widget" id="' + widgetId + '">' +
-                '<div class="agrg-station-name"><span class="agrg-station-dot"></span>' + station.name + '</div>' +
+                '<div class="agrg-station-name"><span class="agrg-station-dot"></span>' + safeStationName + '</div>' +
                 '<div class="agrg-prediction-info">' +
                     '<div class="agrg-prediction-chip"><span class="chip-label">Tide:</span> <span class="chip-value" id="agrg-tide-' + idx + '">--</span></div>' +
                     '<div class="agrg-prediction-chip"><span class="chip-label">Surge:</span> <span class="chip-value" id="agrg-surge-' + idx + '">--</span></div>' +
@@ -1995,14 +2001,38 @@ updateFloodDisplay(0);
     window.addEventListener('resize', function() {
         map.updateSize();
     });
+    // Mobile: orientation change triggers map resize (Firefox + all browsers)
+    window.addEventListener('orientationchange', function() {
+        setTimeout(function() { map.updateSize(); }, 400);
+    });
+    // Firefox: also listen for screen.orientation API
+    if (screen && screen.orientation) {
+        screen.orientation.addEventListener('change', function() {
+            setTimeout(function() { map.updateSize(); }, 400);
+        });
+    }
 })();
 
-console.log('Cumberland County Flood Dashboard v2.0 initialized (OpenLayers + XYZ Tiles)');
-console.log('CHS tide stations: Saint John, Pointe-du-Chene, Charlottetown, Caribou');
-console.log('AGRG prediction service: agrgims.cogs.nscc.ca (10-day tide+surge+TWL)');
-console.log('Flood data: FundySide + NorthSide (0-11m, 0.1m increments via XYZ tiles)');
-console.log('Surge scenarios: 20yr/100yr x Present/2050/2100/2100+AA (Fundy + Northumberland)');
-console.log('Base maps: Street, Topo, CSR, Satellite, Dark');
+// ---------- TIDE API ERROR BACKOFF ----------
+var _tideBackoffMs = 300000; // 5 min default
+var _tideConsecutiveErrors = 0;
+var _tideRefreshTimer = null;
+
+function scheduleTideRefresh() {
+    if (_tideRefreshTimer) clearTimeout(_tideRefreshTimer);
+    _tideRefreshTimer = setTimeout(async function() {
+        try {
+            await refreshAllTides();
+            _tideConsecutiveErrors = 0;
+            _tideBackoffMs = 300000; // reset to 5 min on success
+        } catch (e) {
+            _tideConsecutiveErrors++;
+            _tideBackoffMs = Math.min(300000 * Math.pow(2, _tideConsecutiveErrors), 3600000); // max 1 hour
+        }
+        scheduleTideRefresh();
+    }, _tideBackoffMs);
+}
+scheduleTideRefresh();
 
 </script>
 </body>
